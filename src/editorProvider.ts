@@ -1,4 +1,9 @@
 import * as vscode from "vscode";
+import {
+  getResourceRoots,
+  resolveDocumentResources,
+} from "./resourceResolver";
+import { buildContentSecurityPolicy } from "./webviewCsp";
 
 function getNonce(): string {
   const chars =
@@ -21,21 +26,40 @@ function resolveAppearance(): "light" | "dark" {
 function getWebviewHtml(
   webview: vscode.Webview,
   extensionUri: vscode.Uri,
+  documentText: string,
+  appearance: "light" | "dark",
 ): string {
   const scriptUri = webview.asWebviewUri(
     vscode.Uri.joinPath(extensionUri, "dist", "webview", "main.js"),
   );
   const nonce = getNonce();
+  const boot = JSON.stringify({ text: documentText, appearance });
 
   return `<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="${appearance === "dark" ? "cherry-vscode-dark" : ""}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} data: blob:; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; font-src ${webview.cspSource};" />
+  <meta name="color-scheme" content="${appearance === "dark" ? "dark" : "light"}" />
+  <meta http-equiv="Content-Security-Policy" content="${buildContentSecurityPolicy(webview, nonce)}" />
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--vscode-editor-background, ${appearance === "dark" ? "#1e1e1e" : "#ffffff"});
+      color: var(--vscode-editor-foreground, ${appearance === "dark" ? "#cccccc" : "#333333"});
+    }
+    #cherry-root {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
 </head>
-<body>
+<body class="${appearance === "dark" ? "cherry-vscode-dark" : ""}">
   <div id="cherry-root"></div>
+  <script nonce="${nonce}">window.__CHERRY_BOOT__=${boot};</script>
   <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;
@@ -66,11 +90,13 @@ export class CherryEditorProvider implements vscode.CustomTextEditorProvider {
   ): Promise<void> {
     webviewPanel.webview.options = {
       enableScripts: true,
-      localResourceRoots: [this.extensionUri],
+      localResourceRoots: getResourceRoots(this.extensionUri, document.uri),
     };
     webviewPanel.webview.html = getWebviewHtml(
       webviewPanel.webview,
       this.extensionUri,
+      document.getText(),
+      resolveAppearance(),
     );
 
     let suppressDocumentSync = false;
@@ -115,6 +141,16 @@ export class CherryEditorProvider implements vscode.CustomTextEditorProvider {
             suppressDocumentSync = true;
             await replaceDocumentText(document, message.text as string);
             suppressDocumentSync = false;
+            break;
+          case "resolveResources":
+            webviewPanel.webview.postMessage({
+              type: "resolvedResources",
+              resources: resolveDocumentResources(
+                webviewPanel.webview,
+                document.uri,
+                message.refs as string[],
+              ),
+            });
             break;
         }
       },

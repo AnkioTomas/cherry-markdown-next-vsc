@@ -4,13 +4,13 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: var(--cherry-c-bg, #fff);
-  color: var(--cherry-c-text-1, #1f2328);
+  background: var(--vscode-editor-background, var(--cherry-c-bg, #fff));
+  color: var(--vscode-editor-foreground, var(--cherry-c-text-1, #1f2328));
 }
 
 body.cherry-vscode-dark {
-  background: var(--cherry-c-bg, #0d1117);
-  color: var(--cherry-c-text-1, #e6edf3);
+  background: var(--vscode-editor-background, var(--cherry-c-bg, #1e1e1e));
+  color: var(--vscode-editor-foreground, var(--cherry-c-text-1, #cccccc));
 }
 
 #cherry-root {
@@ -20,8 +20,37 @@ body.cherry-vscode-dark {
 
 #cherry-root .cherry {
   height: 100%;
+  background: var(--vscode-editor-background, var(--cherry-c-bg));
 }
 
 #cherry-root .cherry-body {
   min-height: 0;
+}
+
+/* VS Code 已有资源管理器，彻底移除 Cherry 内置侧栏占位 */
+#cherry-root .cherry-sidebar,
+#cherry-root .cherry-sidebar-mask {
+  display: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  flex: 0 0 0 !important;
+  overflow: hidden !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+#cherry-root .cherry-statusbar-left .cherry-statusbar-btn:first-child {
+  display: none;
+}
+
+#cherry-root .cherry-editor,
+#cherry-root .cherry-editor-cm,
+#cherry-root .cherry-editor-cm .cm-editor,
+#cherry-root .cherry-editor-cm .cm-gutters {
+  background: var(--vscode-editor-background, var(--cherry-c-bg));
+}
+
+#cherry-root .cherry-preview {
+  background: var(--vscode-editor-background, var(--cherry-c-bg));
 }

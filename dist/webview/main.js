@@ -351,13 +351,13 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: var(--cherry-c-bg, #fff);
-  color: var(--cherry-c-text-1, #1f2328);
+  background: var(--vscode-editor-background, var(--cherry-c-bg, #fff));
+  color: var(--vscode-editor-foreground, var(--cherry-c-text-1, #1f2328));
 }
 
 body.cherry-vscode-dark {
-  background: var(--cherry-c-bg, #0d1117);
-  color: var(--cherry-c-text-1, #e6edf3);
+  background: var(--vscode-editor-background, var(--cherry-c-bg, #1e1e1e));
+  color: var(--vscode-editor-foreground, var(--cherry-c-text-1, #cccccc));
 }
 
 #cherry-root {
@@ -367,10 +367,39 @@ body.cherry-vscode-dark {
 
 #cherry-root .cherry {
   height: 100%;
+  background: var(--vscode-editor-background, var(--cherry-c-bg));
 }
 
 #cherry-root .cherry-body {
   min-height: 0;
+}
+
+/* VS Code 已有资源管理器，彻底移除 Cherry 内置侧栏占位 */
+#cherry-root .cherry-sidebar,
+#cherry-root .cherry-sidebar-mask {
+  display: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  flex: 0 0 0 !important;
+  overflow: hidden !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+#cherry-root .cherry-statusbar-left .cherry-statusbar-btn:first-child {
+  display: none;
+}
+
+#cherry-root .cherry-editor,
+#cherry-root .cherry-editor-cm,
+#cherry-root .cherry-editor-cm .cm-editor,
+#cherry-root .cherry-editor-cm .cm-gutters {
+  background: var(--vscode-editor-background, var(--cherry-c-bg));
+}
+
+#cherry-root .cherry-preview {
+  background: var(--vscode-editor-background, var(--cherry-c-bg));
 }
 /*$vite$:1*/`;
   document.head.appendChild(__vite_style__);
@@ -33245,12 +33274,12 @@ ${end.comment}` : end.comment;
     }
     let wantsHighlight = false;
     function highlightAll() {
-      function boot() {
+      function boot2() {
         highlightAll();
       }
       if (document.readyState === "loading") {
         if (!wantsHighlight) {
-          window.addEventListener("DOMContentLoaded", boot, false);
+          window.addEventListener("DOMContentLoaded", boot2, false);
         }
         wantsHighlight = true;
         return;
@@ -52530,6 +52559,76 @@ sequenceDiagram
       this.destroyed || (this.destroyed = true, this.theme.emit("editor:destroy", { id: this.id }), this.commandBridge.destroy(), this.dialogHost.destroy(), (e = this.toolbar) == null || e.destroy(), (t2 = this.sidebar) == null || t2.destroy(), this.divider.destroy(), this.editor.destroy(), this.preview.destroy(), (n = this.statusbar) == null || n.destroy(), this.cherryEl.remove());
     }
   };
+  const RESOURCE_ATTRS = ["src", "poster"];
+  const RESOURCE_SELECTOR = "img[src], video[src], audio[src], iframe[src], source[src], video[poster]";
+  function needsExtensionResolve(value) {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return false;
+    }
+    if (/^(data:|blob:|https?:)/i.test(trimmed)) {
+      return false;
+    }
+    if (trimmed.includes("vscode-cdn.net") || trimmed.includes("vscode-webview:")) {
+      return false;
+    }
+    return true;
+  }
+  function getPreviewRoot() {
+    return document.querySelector("#cherry-root .cherry-preview");
+  }
+  function collectUnresolvedRefs(preview) {
+    const refs = /* @__PURE__ */ new Set();
+    for (const element of preview.querySelectorAll(RESOURCE_SELECTOR)) {
+      for (const attr of RESOURCE_ATTRS) {
+        const value = element.getAttribute(attr);
+        if (value && needsExtensionResolve(value)) {
+          refs.add(value);
+        }
+      }
+    }
+    return [...refs];
+  }
+  function applyResolvedResources(preview, resources) {
+    for (const element of preview.querySelectorAll(RESOURCE_SELECTOR)) {
+      for (const attr of RESOURCE_ATTRS) {
+        const value = element.getAttribute(attr);
+        if (!value) {
+          continue;
+        }
+        const resolved = resources[value];
+        if (resolved) {
+          element.setAttribute(attr, resolved);
+        }
+      }
+    }
+  }
+  let pendingResolve = false;
+  function scheduleResourceRewrite(postMessage) {
+    const preview = getPreviewRoot();
+    if (!preview || pendingResolve) {
+      return;
+    }
+    const refs = collectUnresolvedRefs(preview);
+    if (refs.length === 0) {
+      return;
+    }
+    pendingResolve = true;
+    postMessage({ type: "resolveResources", refs });
+  }
+  function handleResolvedResources(resources) {
+    pendingResolve = false;
+    const preview = getPreviewRoot();
+    if (!preview || Object.keys(resources).length === 0) {
+      return;
+    }
+    applyResolvedResources(preview, resources);
+  }
+  function bindPreviewResourceRewrite(theme2, postMessage) {
+    return theme2.on("preview:rendered", () => {
+      scheduleResourceRewrite(postMessage);
+    });
+  }
   const vscode = acquireVsCodeApi();
   const rootEl = document.getElementById("cherry-root");
   if (!rootEl) {
@@ -52538,9 +52637,24 @@ sequenceDiagram
   const root = rootEl;
   let editor = null;
   let applyingExternalUpdate = false;
+  let unbindResourceRewrite = null;
+  function applyAppearance(appearance) {
+    document.documentElement.classList.toggle(
+      "cherry-vscode-dark",
+      appearance === "dark"
+    );
+    document.body.classList.toggle("cherry-vscode-dark", appearance === "dark");
+    editor == null ? void 0 : editor.theme.setLightDark(appearance);
+  }
   function createEditor(text, appearance) {
-    editor == null ? void 0 : editor.destroy();
-    root.replaceChildren();
+    applyAppearance(appearance);
+    if (editor) {
+      applyingExternalUpdate = true;
+      editor.setMarkdown(text);
+      applyingExternalUpdate = false;
+      editor.setSidebarVisible(false);
+      return;
+    }
     editor = new wl(root, {
       id: "vscode",
       layout: "split",
@@ -52549,6 +52663,12 @@ sequenceDiagram
       sidebar: false,
       editor: { value: text }
     });
+    editor.setSidebarVisible(false);
+    unbindResourceRewrite == null ? void 0 : unbindResourceRewrite();
+    unbindResourceRewrite = bindPreviewResourceRewrite(
+      editor.theme,
+      (message) => vscode.postMessage(message)
+    );
     editor.theme.on("editor:change", (payload) => {
       if (applyingExternalUpdate) {
         return;
@@ -52556,15 +52676,14 @@ sequenceDiagram
       vscode.postMessage({ type: "change", text: payload.markdown });
     });
   }
-  function setAppearance(appearance) {
-    editor == null ? void 0 : editor.theme.setLightDark(appearance);
-    document.body.classList.toggle("cherry-vscode-dark", appearance === "dark");
-  }
   window.addEventListener("message", (event) => {
     const message = event.data;
     switch (message.type) {
       case "init":
-        createEditor(message.text, message.appearance);
+        createEditor(
+          message.text,
+          message.appearance
+        );
         break;
       case "update":
         if (!editor) {
@@ -52575,9 +52694,18 @@ sequenceDiagram
         applyingExternalUpdate = false;
         break;
       case "appearance":
-        setAppearance(message.appearance);
+        applyAppearance(message.appearance);
+        break;
+      case "resolvedResources":
+        handleResolvedResources(message.resources);
+        scheduleResourceRewrite((payload) => vscode.postMessage(payload));
         break;
     }
   });
-  vscode.postMessage({ type: "ready" });
+  const boot = window.__CHERRY_BOOT__;
+  if (boot) {
+    createEditor(boot.text, boot.appearance);
+  } else {
+    vscode.postMessage({ type: "ready" });
+  }
 })();

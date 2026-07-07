@@ -3,9 +3,19 @@ import "cherry-markdown-next/editor.css";
 import "cherry-markdown-next/transformer.css";
 import "./themes.css";
 import "./styles.css";
+import {
+  bindPreviewResourceRewrite,
+  handleResolvedResources,
+  scheduleResourceRewrite,
+} from "./resources";
 
 interface EditorChangePayload {
   markdown: string;
+}
+
+interface CherryBoot {
+  text: string;
+  appearance: "light" | "dark";
 }
 
 const vscode = acquireVsCodeApi();
@@ -17,10 +27,27 @@ const root: HTMLElement = rootEl;
 
 let editor: Cherry | null = null;
 let applyingExternalUpdate = false;
+let unbindResourceRewrite: (() => void) | null = null;
+
+function applyAppearance(appearance: "light" | "dark"): void {
+  document.documentElement.classList.toggle(
+    "cherry-vscode-dark",
+    appearance === "dark",
+  );
+  document.body.classList.toggle("cherry-vscode-dark", appearance === "dark");
+  editor?.theme.setLightDark(appearance);
+}
 
 function createEditor(text: string, appearance: "light" | "dark"): void {
-  editor?.destroy();
-  root.replaceChildren();
+  applyAppearance(appearance);
+
+  if (editor) {
+    applyingExternalUpdate = true;
+    editor.setMarkdown(text);
+    applyingExternalUpdate = false;
+    editor.setSidebarVisible(false);
+    return;
+  }
 
   editor = new Cherry(root, {
     id: "vscode",
@@ -31,6 +58,14 @@ function createEditor(text: string, appearance: "light" | "dark"): void {
     editor: { value: text },
   });
 
+  editor.setSidebarVisible(false);
+
+  unbindResourceRewrite?.();
+  unbindResourceRewrite = bindPreviewResourceRewrite(
+    editor.theme,
+    (message) => vscode.postMessage(message),
+  );
+
   editor.theme.on("editor:change", (payload: EditorChangePayload) => {
     if (applyingExternalUpdate) {
       return;
@@ -39,16 +74,14 @@ function createEditor(text: string, appearance: "light" | "dark"): void {
   });
 }
 
-function setAppearance(appearance: "light" | "dark"): void {
-  editor?.theme.setLightDark(appearance);
-  document.body.classList.toggle("cherry-vscode-dark", appearance === "dark");
-}
-
 window.addEventListener("message", (event) => {
   const message = event.data;
   switch (message.type) {
     case "init":
-      createEditor(message.text as string, message.appearance as "light" | "dark");
+      createEditor(
+        message.text as string,
+        message.appearance as "light" | "dark",
+      );
       break;
     case "update":
       if (!editor) {
@@ -59,9 +92,18 @@ window.addEventListener("message", (event) => {
       applyingExternalUpdate = false;
       break;
     case "appearance":
-      setAppearance(message.appearance as "light" | "dark");
+      applyAppearance(message.appearance as "light" | "dark");
+      break;
+    case "resolvedResources":
+      handleResolvedResources(message.resources as Record<string, string>);
+      scheduleResourceRewrite((payload) => vscode.postMessage(payload));
       break;
   }
 });
 
-vscode.postMessage({ type: "ready" });
+const boot = window.__CHERRY_BOOT__;
+if (boot) {
+  createEditor(boot.text, boot.appearance);
+} else {
+  vscode.postMessage({ type: "ready" });
+}

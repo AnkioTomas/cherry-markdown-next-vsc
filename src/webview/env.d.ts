@@ -6,6 +6,7 @@ declare module "cherry-markdown-next" {
     };
     constructor(root: HTMLElement, options?: Record<string, unknown>);
     setMarkdown(markdown: string): void;
+    setSidebarVisible(show: boolean): void;
     destroy(): void;
   }
 }
@@ -18,3 +19,10 @@ declare module "cherry-markdown-next/theme/*/editor.css";
 declare function acquireVsCodeApi(): {
   postMessage(message: unknown): void;
 };
+
+interface Window {
+  __CHERRY_BOOT__?: {
+    text: string;
+    appearance: "light" | "dark";
+  };
+}
