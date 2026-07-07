@@ -1,0 +1,47 @@
+{
+  "name": "cherry-markdown-next-vs",
+  "displayName": "Cherry Markdown Next VS",
+  "version": "1.0.0",
+  "description": "VSCode extension for Cherry Markdown Next",
+  "publisher": "ankio",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onCustomEditor:cherry-markdown-next.editor"
+  ],
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "cherry-markdown-next.editor",
+        "displayName": "Cherry Markdown",
+        "selector": [
+          {
+            "filenamePattern": "*.md"
+          }
+        ],
+        "priority": "default"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "pnpm run build",
+    "build": "vite build && vite build --config vite.webview.config.ts",
+    "watch": "vite build --watch",
+    "watch:webview": "vite build --config vite.webview.config.ts --watch",
+    "typecheck": "tsc --noEmit",
+    "deps:sync": "pnpm --dir ../cherry-markdown-next build",
+    "deps:pack-install": "pnpm run deps:sync && pnpm --dir ../cherry-markdown-next pack --pack-destination .local-pack && pnpm add file:.local-pack/cherry-markdown-next-0.1.0.tgz"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.0",
+    "@types/vscode": "^1.125.0",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.21"
+  },
+  "private": true,
+  "dependencies": {
+    "cherry-markdown-next": "file:../cherry-markdown-next"
+  }
+}
