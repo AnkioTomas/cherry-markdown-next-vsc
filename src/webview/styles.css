@@ -1,0 +1,27 @@
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--cherry-c-bg, #fff);
+  color: var(--cherry-c-text-1, #1f2328);
+}
+
+body.cherry-vscode-dark {
+  background: var(--cherry-c-bg, #0d1117);
+  color: var(--cherry-c-text-1, #e6edf3);
+}
+
+#cherry-root {
+  width: 100%;
+  height: 100%;
+}
+
+#cherry-root .cherry {
+  height: 100%;
+}
+
+#cherry-root .cherry-body {
+  min-height: 0;
+}

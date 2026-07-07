@@ -1,0 +1,11 @@
+.vscode/**
+.vscode-test/**
+src/**
+node_modules/**
+pnpm-lock.yaml
+pnpm-workspace.yaml
+tsconfig.json
+vite.config.ts
+vite.webview.config.ts
+.gitignore
+.local-pack/**
