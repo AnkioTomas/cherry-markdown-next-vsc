@@ -71,27 +71,6 @@ body.cherry-vscode-dark {
   max-width: 100%;
 }
 
-/* 侧栏不参与 flex 布局，避免在 VS Code 里留下不可见占位 */
-#cherry-root .cherry-sidebar,
-#cherry-root .cherry-sidebar-mask {
-  position: absolute !important;
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-  min-width: 0 !important;
-  flex: 0 0 0 !important;
-  overflow: hidden !important;
-  border: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  pointer-events: none !important;
-  visibility: hidden !important;
-}
-
-#cherry-root .cherry-statusbar-left .cherry-statusbar-btn:first-child {
-  display: none;
-}
-
 #cherry-root .cherry-editor,
 #cherry-root .cherry-editor-cm,
 #cherry-root .cherry-editor-cm .cm-editor,

@@ -1,4 +1,9 @@
-import { Cherry, DEFAULT_TOOLBAR_ITEMS } from "cherry-markdown-next";
+import {
+  Cherry,
+  DEFAULT_TOOLBAR_ITEMS,
+  type CherryOptions,
+  type EditorOptions,
+} from "cherry-markdown-next";
 import "cherry-markdown-next/editor.css";
 import "cherry-markdown-next/transformer.css";
 import "./themes.css";
@@ -62,6 +67,43 @@ function applyAppearance(appearance: "light" | "dark"): void {
   editor?.theme.setLightDark(appearance);
 }
 
+function buildEditorOptions(
+  text: string,
+  config: WebviewConfig,
+): EditorOptions {
+  const editorOptions: EditorOptions = {
+    value: text,
+    lineNumbers: true,
+  };
+
+  if (config.uploadEnabled) {
+    editorOptions.onParseFile = async (file) => {
+      const dataBase64 = await fileToBase64(file);
+      return bridgeRequest<{ url: string; msg: string }>(
+        (message) => vscode.postMessage(message),
+        "uploadFile",
+        {
+          name: file.name,
+          mime: file.type,
+          dataBase64,
+        },
+      );
+    };
+  }
+
+  if (config.aiEnabled) {
+    editorOptions.onAiRequest = async (action, selected, prompts) => {
+      return bridgeRequest<string>(
+        (message) => vscode.postMessage(message),
+        "aiRequest",
+        { action, text: selected, prompts },
+      );
+    };
+  }
+
+  return editorOptions;
+}
+
 function createEditor(boot: CherryBoot): void {
   const { text, appearance } = boot;
   const config: WebviewConfig = boot.config ?? {
@@ -78,13 +120,14 @@ function createEditor(boot: CherryBoot): void {
     return;
   }
 
-  const options: Record<string, unknown> = {
-    id: "vscode",
+  // 结构对齐 cherry-markdown-next demo：onAiRequest / onParseFile 挂在 editor 下。
+  // 未配 fetchFiles 时侧栏只显示大纲（TOC）。
+  const options: CherryOptions = {
     layout: "split",
     appearance,
     themeId: "default",
-    sidebar: false,
-    editor: { value: text },
+    statusbar: true,
+    sidebar: true,
     storage: createBridgedStorage(
       boot.storageSnapshot ?? {},
       (message) => vscode.postMessage(message),
@@ -104,36 +147,12 @@ function createEditor(boot: CherryBoot): void {
         },
       ],
     },
+    preview: {
+      /** 仅在纯预览布局下生效 */
+      maxWidth: "720px",
+    },
+    editor: buildEditorOptions(text, config),
   };
-
-  if (config.uploadEnabled) {
-    options.onParseFile = async (file: File) => {
-      const dataBase64 = await fileToBase64(file);
-      return bridgeRequest<{ url: string; msg: string }>(
-        (message) => vscode.postMessage(message),
-        "uploadFile",
-        {
-          name: file.name,
-          mime: file.type,
-          dataBase64,
-        },
-      );
-    };
-  }
-
-  if (config.aiEnabled) {
-    options.onAiRequest = async (
-      action: string,
-      selected: string,
-      prompts?: string,
-    ) => {
-      return bridgeRequest<string>(
-        (message) => vscode.postMessage(message),
-        "aiRequest",
-        { action, text: selected, prompts },
-      );
-    };
-  }
 
   editor = new Cherry(root, options);
 

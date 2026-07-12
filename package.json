@@ -217,6 +217,6 @@
   },
   "private": true,
   "dependencies": {
-    "cherry-markdown-next": "file:../cherry-markdown-next"
+    "cherry-markdown-next": "^0.1.3"
   }
 }
