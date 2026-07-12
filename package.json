@@ -26,23 +26,9 @@
     ],
     "configuration": [
       {
-        "id": "cherryMarkdownNext.editor",
-        "title": "编辑器",
-        "order": 1,
-        "properties": {
-          "cherryMarkdownNext.storage.enabled": {
-            "type": "boolean",
-            "default": true,
-            "order": 1,
-            "scope": "window",
-            "markdownDescription": "通过 VS Code 全局状态实现 Cherry `StorageAPI`（分栏比例等持久化）。关闭后回退到 webview `localStorage`。"
-          }
-        }
-      },
-      {
         "id": "cherryMarkdownNext.files",
         "title": "文件处理",
-        "order": 2,
+        "order": 1,
         "properties": {
           "cherryMarkdownNext.upload.mode": {
             "type": "string",
@@ -108,7 +94,7 @@
       {
         "id": "cherryMarkdownNext.ai",
         "title": "AI",
-        "order": 3,
+        "order": 2,
         "properties": {
           "cherryMarkdownNext.ai.enabled": {
             "type": "boolean",

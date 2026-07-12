@@ -3,7 +3,6 @@ import * as vscode from "vscode";
 export type UploadMode = "off" | "workspace" | "http";
 
 export interface CherryConfig {
-  storageEnabled: boolean;
   uploadMode: UploadMode;
   uploadDirectory: string;
   uploadUrl: string;
@@ -60,7 +59,6 @@ export function readCherryConfig(
   const uploadMode = cfg.get<string>("upload.mode", "workspace");
   const temperature = cfg.get<number>("ai.temperature", -1);
   return {
-    storageEnabled: cfg.get<boolean>("storage.enabled", true),
     uploadMode:
       uploadMode === "off" || uploadMode === "http" || uploadMode === "workspace"
         ? uploadMode
@@ -88,7 +86,6 @@ export function readCherryConfig(
 /** 传给 webview 的精简配置（不含密钥） */
 export function toWebviewConfig(config: CherryConfig) {
   return {
-    storageEnabled: config.storageEnabled,
     uploadEnabled: config.uploadMode !== "off",
     aiEnabled: config.aiEnabled && Boolean(config.aiEndpoint),
   };

@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { handleAiRequest } from "./ai";
 import {
   getResourceRoots,
+  mergeResourceRoots,
   resolveDocumentResources,
 } from "./resourceResolver";
 import { readCherryConfig, toWebviewConfig } from "./settings";
@@ -107,9 +108,7 @@ function buildBootPayload(
     text: document.getText(),
     appearance,
     config: toWebviewConfig(config),
-    storageSnapshot: config.storageEnabled
-      ? readStorageSnapshot(context)
-      : {},
+    storageSnapshot: readStorageSnapshot(context),
   };
 }
 
@@ -179,16 +178,31 @@ export class CherryEditorProvider implements vscode.CustomTextEditorProvider {
             await replaceDocumentText(document, message.text as string);
             suppressDocumentSync = false;
             break;
-          case "resolveResources":
+          case "resolveResources": {
+            const refs = message.refs as string[];
+            const currentRoots =
+              webviewPanel.webview.options.localResourceRoots ?? [];
+            const { resources, missingRoots } = resolveDocumentResources(
+              webviewPanel.webview,
+              document.uri,
+              refs,
+              currentRoots,
+            );
+            if (missingRoots.length > 0) {
+              webviewPanel.webview.options = {
+                ...webviewPanel.webview.options,
+                localResourceRoots: mergeResourceRoots(
+                  currentRoots,
+                  missingRoots,
+                ),
+              };
+            }
             webviewPanel.webview.postMessage({
               type: "resolvedResources",
-              resources: resolveDocumentResources(
-                webviewPanel.webview,
-                document.uri,
-                message.refs as string[],
-              ),
+              resources,
             });
             break;
+          }
           case "storageSet":
             await writeStorageItem(
               this.context,

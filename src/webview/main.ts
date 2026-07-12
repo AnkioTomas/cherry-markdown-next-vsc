@@ -21,7 +21,6 @@ interface EditorChangePayload {
 }
 
 interface WebviewConfig {
-  storageEnabled: boolean;
   uploadEnabled: boolean;
   aiEnabled: boolean;
 }
@@ -66,7 +65,6 @@ function applyAppearance(appearance: "light" | "dark"): void {
 function createEditor(boot: CherryBoot): void {
   const { text, appearance } = boot;
   const config: WebviewConfig = boot.config ?? {
-    storageEnabled: false,
     uploadEnabled: false,
     aiEnabled: false,
   };
@@ -87,6 +85,10 @@ function createEditor(boot: CherryBoot): void {
     themeId: "default",
     sidebar: false,
     editor: { value: text },
+    storage: createBridgedStorage(
+      boot.storageSnapshot ?? {},
+      (message) => vscode.postMessage(message),
+    ),
     toolbar: {
       items: [
         ...DEFAULT_TOOLBAR_ITEMS,
@@ -103,13 +105,6 @@ function createEditor(boot: CherryBoot): void {
       ],
     },
   };
-
-  if (config.storageEnabled) {
-    options.storage = createBridgedStorage(
-      boot.storageSnapshot ?? {},
-      (message) => vscode.postMessage(message),
-    );
-  }
 
   if (config.uploadEnabled) {
     options.onParseFile = async (file: File) => {
@@ -150,6 +145,9 @@ function createEditor(boot: CherryBoot): void {
     editor.theme,
     (message) => vscode.postMessage(message),
   );
+  // Cherry 首次 paint 在构造函数内同步完成，上面的监听会错过 preview:rendered；
+  // 立刻补扫一次，否则相对路径图片会一直打到 webview 源站 → 403。
+  scheduleResourceRewrite((message) => vscode.postMessage(message));
 
   editor.theme.on("editor:change", (payload: EditorChangePayload) => {
     if (applyingExternalUpdate) {

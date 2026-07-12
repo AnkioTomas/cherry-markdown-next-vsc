@@ -35,7 +35,6 @@ interface Window {
     text: string;
     appearance: "light" | "dark";
     config?: {
-      storageEnabled: boolean;
       uploadEnabled: boolean;
       aiEnabled: boolean;
     };
