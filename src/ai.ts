@@ -1,4 +1,4 @@
-import type { CherryConfig } from "./settings";
+import type { AiActionId, CherryConfig } from "./settings";
 
 /** 各动作共用的硬约束：输出必须能直接替换进编辑器选区 */
 const OUTPUT_RULES = `
@@ -123,7 +123,9 @@ export async function handleAiRequest(
     throw new Error("未配置 cherryMarkdownNext.ai.endpoint");
   }
 
+  const override = config.aiPrompts[action as AiActionId]?.trim();
   const system =
+    override ||
     ACTION_PROMPTS[action] ||
     `你是 Markdown 写作助手。按要求处理文本。\n\n${OUTPUT_RULES}`;
   const userContent = buildUserMessage(action, text, prompts);

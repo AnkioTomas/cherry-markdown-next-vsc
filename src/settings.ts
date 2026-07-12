@@ -2,6 +2,13 @@ import * as vscode from "vscode";
 
 export type UploadMode = "off" | "workspace" | "http";
 
+export type AiActionId =
+  | "polish"
+  | "proofread"
+  | "translate"
+  | "summarize"
+  | "custom";
+
 export interface CherryConfig {
   uploadMode: UploadMode;
   uploadDirectory: string;
@@ -17,6 +24,8 @@ export interface CherryConfig {
   aiTemperature: number;
   aiHeaders: Record<string, string>;
   aiTimeoutMs: number;
+  /** 非空则覆盖对应动作的内置 system 提示词 */
+  aiPrompts: Partial<Record<AiActionId, string>>;
 }
 
 function asStringRecord(value: unknown): Record<string, string> {
@@ -52,6 +61,26 @@ function clampTimeout(value: unknown, fallback: number): number {
   return Math.floor(n);
 }
 
+function readAiPrompts(
+  cfg: vscode.WorkspaceConfiguration,
+): Partial<Record<AiActionId, string>> {
+  const actions: AiActionId[] = [
+    "polish",
+    "proofread",
+    "translate",
+    "summarize",
+    "custom",
+  ];
+  const out: Partial<Record<AiActionId, string>> = {};
+  for (const action of actions) {
+    const value = cfg.get<string>(`ai.prompt.${action}`, "").trim();
+    if (value) {
+      out[action] = value;
+    }
+  }
+  return out;
+}
+
 export function readCherryConfig(
   resource?: vscode.Uri,
 ): CherryConfig {
@@ -80,6 +109,7 @@ export function readCherryConfig(
         : -1,
     aiHeaders: asStringRecord(cfg.get("ai.headers")),
     aiTimeoutMs: clampTimeout(cfg.get("ai.timeoutMs"), 120_000),
+    aiPrompts: readAiPrompts(cfg),
   };
 }
 

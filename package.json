@@ -157,6 +157,46 @@
             "order": 8,
             "scope": "window",
             "markdownDescription": "AI 请求超时（毫秒）。"
+          },
+          "cherryMarkdownNext.ai.prompt.polish": {
+            "type": "string",
+            "default": "",
+            "order": 9,
+            "scope": "window",
+            "editPresentation": "multiline",
+            "markdownDescription": "「智能润色」system 提示词。**留空使用内置**；填写后整段替换内置提示（请自行写清输出约束）。"
+          },
+          "cherryMarkdownNext.ai.prompt.proofread": {
+            "type": "string",
+            "default": "",
+            "order": 10,
+            "scope": "window",
+            "editPresentation": "multiline",
+            "markdownDescription": "「纠错校对」system 提示词。**留空使用内置**；填写后整段替换。"
+          },
+          "cherryMarkdownNext.ai.prompt.translate": {
+            "type": "string",
+            "default": "",
+            "order": 11,
+            "scope": "window",
+            "editPresentation": "multiline",
+            "markdownDescription": "「翻译文本」system 提示词。**留空使用内置**；填写后整段替换。"
+          },
+          "cherryMarkdownNext.ai.prompt.summarize": {
+            "type": "string",
+            "default": "",
+            "order": 12,
+            "scope": "window",
+            "editPresentation": "multiline",
+            "markdownDescription": "「生成摘要」system 提示词。**留空使用内置**；填写后整段替换。"
+          },
+          "cherryMarkdownNext.ai.prompt.custom": {
+            "type": "string",
+            "default": "",
+            "order": 13,
+            "scope": "window",
+            "editPresentation": "multiline",
+            "markdownDescription": "「自定义」system 提示词。**留空使用内置**；填写后整段替换。用户对话框指令仍通过 user 消息传入。"
           }
         }
       }

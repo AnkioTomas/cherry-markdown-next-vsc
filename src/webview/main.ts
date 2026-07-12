@@ -142,14 +142,14 @@ function createEditor(boot: CherryBoot): void {
 
   unbindResourceRewrite?.();
   unbindResourceRewrite = bindPreviewResourceRewrite(
-    editor.theme,
+    editor.eventBus,
     (message) => vscode.postMessage(message),
   );
   // Cherry 首次 paint 在构造函数内同步完成，上面的监听会错过 preview:rendered；
   // 立刻补扫一次，否则相对路径图片会一直打到 webview 源站 → 403。
   scheduleResourceRewrite((message) => vscode.postMessage(message));
 
-  editor.theme.on("editor:change", (payload: EditorChangePayload) => {
+  editor.eventBus.on("editor:change", (payload: EditorChangePayload) => {
     if (applyingExternalUpdate) {
       return;
     }

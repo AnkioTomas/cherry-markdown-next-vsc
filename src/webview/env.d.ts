@@ -11,8 +11,15 @@ declare module "cherry-markdown-next" {
 
   export class Cherry {
     readonly theme: {
-      on(event: string, handler: (payload: { markdown: string }) => void): () => void;
       setLightDark(mode: "light" | "dark"): void;
+    };
+    readonly eventBus: {
+      on(
+        event: "editor:change",
+        handler: (payload: { markdown: string }) => void,
+      ): () => void;
+      on(event: "preview:rendered", handler: () => void): () => void;
+      on(event: string, handler: (payload?: unknown) => void): () => void;
     };
     constructor(root: HTMLElement, options?: Record<string, unknown>);
     setMarkdown(markdown: string): void;

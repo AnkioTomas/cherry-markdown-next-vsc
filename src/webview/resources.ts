@@ -80,10 +80,10 @@ export function handleResolvedResources(resources: Record<string, string>): void
 }
 
 export function bindPreviewResourceRewrite(
-  theme: { on(event: string, handler: () => void): () => void },
+  eventBus: { on(event: string, handler: () => void): () => void },
   postMessage: (message: unknown) => void,
 ): () => void {
-  return theme.on("preview:rendered", () => {
+  return eventBus.on("preview:rendered", () => {
     scheduleResourceRewrite(postMessage);
   });
 }
