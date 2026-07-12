@@ -23,6 +23,157 @@
         ],
         "priority": "default"
       }
+    ],
+    "configuration": [
+      {
+        "id": "cherryMarkdownNext.editor",
+        "title": "编辑器",
+        "order": 1,
+        "properties": {
+          "cherryMarkdownNext.storage.enabled": {
+            "type": "boolean",
+            "default": true,
+            "order": 1,
+            "scope": "window",
+            "markdownDescription": "通过 VS Code 全局状态实现 Cherry `StorageAPI`（分栏比例等持久化）。关闭后回退到 webview `localStorage`。"
+          }
+        }
+      },
+      {
+        "id": "cherryMarkdownNext.files",
+        "title": "文件处理",
+        "order": 2,
+        "properties": {
+          "cherryMarkdownNext.upload.mode": {
+            "type": "string",
+            "enum": ["off", "workspace", "http"],
+            "default": "workspace",
+            "order": 1,
+            "scope": "resource",
+            "enumDescriptions": [
+              "禁用粘贴/拖入上传（不注册 Cherry `onParseFile`）",
+              "保存到当前 Markdown 旁，写入相对路径",
+              "上传到自定义 HTTP 接口，写入返回的 URL"
+            ],
+            "markdownDescription": "粘贴或拖入图片/文件时的处理方式（Cherry `onParseFile`）。"
+          },
+          "cherryMarkdownNext.upload.directory": {
+            "type": "string",
+            "default": "assets",
+            "order": 2,
+            "scope": "resource",
+            "markdownDescription": "`workspace` 模式：相对文档目录的子目录。空字符串表示与文档同级。"
+          },
+          "cherryMarkdownNext.upload.url": {
+            "type": "string",
+            "default": "",
+            "order": 3,
+            "scope": "resource",
+            "markdownDescription": "`http` 模式：上传地址（`POST multipart/form-data`）。"
+          },
+          "cherryMarkdownNext.upload.formField": {
+            "type": "string",
+            "default": "file",
+            "order": 4,
+            "scope": "resource",
+            "markdownDescription": "`http` 模式：multipart 文件字段名，默认 `file`。"
+          },
+          "cherryMarkdownNext.upload.urlField": {
+            "type": "string",
+            "default": "url",
+            "order": 5,
+            "scope": "resource",
+            "markdownDescription": "`http` 模式：从 JSON 响应取 URL 的字段路径，支持点号嵌套，如 `url`、`data.url`。"
+          },
+          "cherryMarkdownNext.upload.headers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "order": 6,
+            "scope": "resource",
+            "markdownDescription": "`http` 模式：额外 HTTP 头。例：`{\"Authorization\": \"Bearer xxx\"}`。"
+          },
+          "cherryMarkdownNext.upload.timeoutMs": {
+            "type": "number",
+            "default": 60000,
+            "minimum": 1000,
+            "order": 7,
+            "scope": "resource",
+            "markdownDescription": "`http` 模式：上传超时（毫秒）。"
+          }
+        }
+      },
+      {
+        "id": "cherryMarkdownNext.ai",
+        "title": "AI",
+        "order": 3,
+        "properties": {
+          "cherryMarkdownNext.ai.enabled": {
+            "type": "boolean",
+            "default": false,
+            "order": 1,
+            "scope": "window",
+            "markdownDescription": "启用 AI 工具栏（润色 / 校对 / 翻译 / 摘要 / 自定义）。需同时配置 `endpoint`。"
+          },
+          "cherryMarkdownNext.ai.endpoint": {
+            "type": "string",
+            "default": "",
+            "order": 2,
+            "scope": "window",
+            "markdownDescription": "OpenAI 兼容 Chat Completions 地址。\n\n例：`https://api.openai.com/v1/chat/completions`、`https://api.deepseek.com/v1/chat/completions`"
+          },
+          "cherryMarkdownNext.ai.apiKey": {
+            "type": "string",
+            "default": "",
+            "order": 3,
+            "scope": "window",
+            "markdownDescription": "API Key（写入 `Authorization: Bearer ...`）。**会进入 settings.json**，共享环境更推荐用 `apiKeyEnv`。"
+          },
+          "cherryMarkdownNext.ai.apiKeyEnv": {
+            "type": "string",
+            "default": "",
+            "order": 4,
+            "scope": "window",
+            "markdownDescription": "从环境变量读取 API Key（`apiKey` 为空时生效）。例：`OPENAI_API_KEY`。"
+          },
+          "cherryMarkdownNext.ai.model": {
+            "type": "string",
+            "default": "gpt-4o-mini",
+            "order": 5,
+            "scope": "window",
+            "markdownDescription": "模型名称，随服务商而定（如 `gpt-4o-mini`、`deepseek-chat`）。"
+          },
+          "cherryMarkdownNext.ai.temperature": {
+            "type": "number",
+            "default": -1,
+            "minimum": -1,
+            "maximum": 2,
+            "order": 6,
+            "scope": "window",
+            "markdownDescription": "采样温度。`-1` 表示按动作使用内置默认（校对偏低、润色略高）；`0`–`2` 则统一覆盖。"
+          },
+          "cherryMarkdownNext.ai.headers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "order": 7,
+            "scope": "window",
+            "markdownDescription": "额外 HTTP 头。若已含 `Authorization`，则不再自动附加 Bearer。"
+          },
+          "cherryMarkdownNext.ai.timeoutMs": {
+            "type": "number",
+            "default": 120000,
+            "minimum": 1000,
+            "order": 8,
+            "scope": "window",
+            "markdownDescription": "AI 请求超时（毫秒）。"
+          }
+        }
+      }
     ]
   },
   "scripts": {
@@ -40,6 +191,6 @@
   },
   "private": true,
   "dependencies": {
-    "cherry-markdown-next": "^0.1.1"
+    "cherry-markdown-next": "file:../cherry-markdown-next"
   }
 }

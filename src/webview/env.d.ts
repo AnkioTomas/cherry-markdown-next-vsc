@@ -1,4 +1,14 @@
 declare module "cherry-markdown-next" {
+  export const DEFAULT_TOOLBAR_ITEMS: Array<{
+    id: string;
+    type?: string;
+    label?: string;
+    title?: string;
+    icon?: string;
+    children?: unknown[];
+    onClick?: (ctx: unknown) => void;
+  }>;
+
   export class Cherry {
     readonly theme: {
       on(event: string, handler: (payload: { markdown: string }) => void): () => void;
@@ -24,5 +34,11 @@ interface Window {
   __CHERRY_BOOT__?: {
     text: string;
     appearance: "light" | "dark";
+    config?: {
+      storageEnabled: boolean;
+      uploadEnabled: boolean;
+      aiEnabled: boolean;
+    };
+    storageSnapshot?: Record<string, string>;
   };
 }

@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       cherry-markdown-next:
-        specifier: ^0.1.1
-        version: 0.1.1
+        specifier: file:../cherry-markdown-next
+        version: file:../cherry-markdown-next
     devDependencies:
       '@types/node':
         specifier: ^22.20.0
@@ -209,8 +209,8 @@ packages:
   '@types/vscode@1.125.0':
     resolution: {integrity: sha512-0icm/ZQAaism87P0ekHqi4/Ju9du+Tm0RUW+y7vqRsxY2cY0FNRX1nAnaW7nT6npPt2tfHiheZ55Zm9UhqonFA==}
 
-  cherry-markdown-next@0.1.1:
-    resolution: {integrity: sha512-zPrmHy3c9MvaLswJsYItS3KnxI2fAWhBnT4olUqDAB+wIxyoX5j+TYhKLciUjnwT77IdoeqVvl5GZE8vJ3gmfA==}
+  cherry-markdown-next@file:../cherry-markdown-next:
+    resolution: {directory: ../cherry-markdown-next, type: directory}
 
   crelt@1.0.7:
     resolution: {integrity: sha512-aK6BbWfhf4U/wCcLHKPJl/xa6VkVstRaPywWtMKGwuOLc/wZTyQYuoxgvZnNsBvv7Kg3YTBQYYBCggcviQczuA==}
@@ -620,7 +620,7 @@ snapshots:
 
   '@types/vscode@1.125.0': {}
 
-  cherry-markdown-next@0.1.1:
+  cherry-markdown-next@file:../cherry-markdown-next:
     dependencies:
       '@codemirror/commands': 6.10.4
       '@codemirror/lang-markdown': 6.5.0

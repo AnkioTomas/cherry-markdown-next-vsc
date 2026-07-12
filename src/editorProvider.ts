@@ -1,8 +1,12 @@
 import * as vscode from "vscode";
+import { handleAiRequest } from "./ai";
 import {
   getResourceRoots,
   resolveDocumentResources,
 } from "./resourceResolver";
+import { readCherryConfig, toWebviewConfig } from "./settings";
+import { readStorageSnapshot, writeStorageItem } from "./storage";
+import { handleUpload } from "./upload";
 
 function getNonce(): string {
   const chars =
@@ -41,14 +45,13 @@ function resolveAppearance(): "light" | "dark" {
 function getWebviewHtml(
   webview: vscode.Webview,
   extensionUri: vscode.Uri,
-  documentText: string,
+  boot: Record<string, unknown>,
   appearance: "light" | "dark",
 ): string {
   const scriptUri = webview.asWebviewUri(
     vscode.Uri.joinPath(extensionUri, "dist", "webview", "main.js"),
   );
   const nonce = getNonce();
-  const boot = JSON.stringify({ text: documentText, appearance });
 
   return `<!DOCTYPE html>
 <html lang="zh-CN" class="${appearance === "dark" ? "cherry-vscode-dark" : ""}">
@@ -75,7 +78,7 @@ function getWebviewHtml(
 </head>
 <body class="${appearance === "dark" ? "cherry-vscode-dark" : ""}">
   <div id="cherry-root"></div>
-  <script nonce="${nonce}">window.__CHERRY_BOOT__=${boot};</script>
+  <script nonce="${nonce}">window.__CHERRY_BOOT__=${JSON.stringify(boot)};</script>
   <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;
@@ -94,25 +97,44 @@ async function replaceDocumentText(
   return vscode.workspace.applyEdit(edit);
 }
 
+function buildBootPayload(
+  context: vscode.ExtensionContext,
+  document: vscode.TextDocument,
+  appearance: "light" | "dark",
+) {
+  const config = readCherryConfig(document.uri);
+  return {
+    text: document.getText(),
+    appearance,
+    config: toWebviewConfig(config),
+    storageSnapshot: config.storageEnabled
+      ? readStorageSnapshot(context)
+      : {},
+  };
+}
+
 export class CherryEditorProvider implements vscode.CustomTextEditorProvider {
   public static readonly viewType = "cherry-markdown-next.editor";
 
-  constructor(private readonly extensionUri: vscode.Uri) {}
+  constructor(private readonly context: vscode.ExtensionContext) {}
 
   async resolveCustomTextEditor(
     document: vscode.TextDocument,
     webviewPanel: vscode.WebviewPanel,
     _token: vscode.CancellationToken,
   ): Promise<void> {
+    const extensionUri = this.context.extensionUri;
     webviewPanel.webview.options = {
       enableScripts: true,
-      localResourceRoots: getResourceRoots(this.extensionUri, document.uri),
+      localResourceRoots: getResourceRoots(extensionUri, document.uri),
     };
+
+    const appearance = resolveAppearance();
     webviewPanel.webview.html = getWebviewHtml(
       webviewPanel.webview,
-      this.extensionUri,
-      document.getText(),
-      resolveAppearance(),
+      extensionUri,
+      buildBootPayload(this.context, document, appearance),
+      appearance,
     );
 
     let suppressDocumentSync = false;
@@ -120,8 +142,7 @@ export class CherryEditorProvider implements vscode.CustomTextEditorProvider {
     const postInit = () => {
       webviewPanel.webview.postMessage({
         type: "init",
-        text: document.getText(),
-        appearance: resolveAppearance(),
+        ...buildBootPayload(this.context, document, resolveAppearance()),
       });
     };
 
@@ -168,6 +189,78 @@ export class CherryEditorProvider implements vscode.CustomTextEditorProvider {
               ),
             });
             break;
+          case "storageSet":
+            await writeStorageItem(
+              this.context,
+              message.key as string,
+              message.value as string,
+            );
+            break;
+          case "openSettings":
+            await vscode.commands.executeCommand(
+              "workbench.action.openSettings",
+              "cherryMarkdownNext",
+            );
+            break;
+          case "uploadFile": {
+            const id = message.id as number;
+            try {
+              const result = await handleUpload(
+                document.uri,
+                readCherryConfig(document.uri),
+                {
+                  name: message.name as string,
+                  mime: message.mime as string,
+                  dataBase64: message.dataBase64 as string,
+                },
+              );
+              webviewPanel.webview.postMessage({
+                type: "uploadFileResult",
+                id,
+                ok: true,
+                ...result,
+              });
+            } catch (error) {
+              const errorMessage =
+                error instanceof Error ? error.message : String(error);
+              void vscode.window.showErrorMessage(`上传失败: ${errorMessage}`);
+              webviewPanel.webview.postMessage({
+                type: "uploadFileResult",
+                id,
+                ok: false,
+                error: errorMessage,
+              });
+            }
+            break;
+          }
+          case "aiRequest": {
+            const id = message.id as number;
+            try {
+              const result = await handleAiRequest(
+                readCherryConfig(document.uri),
+                message.action as string,
+                message.text as string,
+                message.prompts as string | undefined,
+              );
+              webviewPanel.webview.postMessage({
+                type: "aiRequestResult",
+                id,
+                ok: true,
+                result,
+              });
+            } catch (error) {
+              const errorMessage =
+                error instanceof Error ? error.message : String(error);
+              void vscode.window.showErrorMessage(`AI 请求失败: ${errorMessage}`);
+              webviewPanel.webview.postMessage({
+                type: "aiRequestResult",
+                id,
+                ok: false,
+                error: errorMessage,
+              });
+            }
+            break;
+          }
         }
       },
     );

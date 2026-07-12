@@ -1,13 +1,3 @@
-const SPLIT_STORAGE_KEY = "cherry-editor-split";
-
-export function resetSplitRatio(): void {
-  try {
-    localStorage.setItem(SPLIT_STORAGE_KEY, "0.5");
-  } catch {
-    // webview 隐私模式等场景下忽略
-  }
-}
-
 export function bindLayoutRefresh(
   root: HTMLElement,
   refresh: () => void,
