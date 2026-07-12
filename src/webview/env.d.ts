@@ -6,8 +6,8 @@ declare module "cherry-markdown-next" {
     };
     constructor(root: HTMLElement, options?: Record<string, unknown>);
     setMarkdown(markdown: string): void;
-    setSidebarVisible(show: boolean): void;
-    destroy(): void;
+    getLayout(): "split" | "edit" | "preview";
+    setLayout(mode: "split" | "edit" | "preview"): void;
   }
 }
 

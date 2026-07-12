@@ -8,6 +8,7 @@ import {
   handleResolvedResources,
   scheduleResourceRewrite,
 } from "./resources";
+import { bindLayoutRefresh, resetSplitRatio } from "./layout";
 
 interface EditorChangePayload {
   markdown: string;
@@ -28,6 +29,14 @@ const root: HTMLElement = rootEl;
 let editor: Cherry | null = null;
 let applyingExternalUpdate = false;
 let unbindResourceRewrite: (() => void) | null = null;
+let unbindLayoutRefresh: (() => void) | null = null;
+
+function refreshSplitLayout(): void {
+  if (!editor || editor.getLayout() !== "split") {
+    return;
+  }
+  editor.setLayout("split");
+}
 
 function applyAppearance(appearance: "light" | "dark"): void {
   document.documentElement.classList.toggle(
@@ -45,9 +54,10 @@ function createEditor(text: string, appearance: "light" | "dark"): void {
     applyingExternalUpdate = true;
     editor.setMarkdown(text);
     applyingExternalUpdate = false;
-    editor.setSidebarVisible(false);
     return;
   }
+
+  resetSplitRatio();
 
   editor = new Cherry(root, {
     id: "vscode",
@@ -58,7 +68,8 @@ function createEditor(text: string, appearance: "light" | "dark"): void {
     editor: { value: text },
   });
 
-  editor.setSidebarVisible(false);
+  unbindLayoutRefresh?.();
+  unbindLayoutRefresh = bindLayoutRefresh(root, refreshSplitLayout);
 
   unbindResourceRewrite?.();
   unbindResourceRewrite = bindPreviewResourceRewrite(

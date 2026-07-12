@@ -3,7 +3,6 @@ import {
   getResourceRoots,
   resolveDocumentResources,
 } from "./resourceResolver";
-import { buildContentSecurityPolicy } from "./webviewCsp";
 
 function getNonce(): string {
   const chars =
@@ -13,6 +12,22 @@ function getNonce(): string {
     nonce += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return nonce;
+}
+
+function buildContentSecurityPolicy(
+  webview: vscode.Webview,
+  nonce: string,
+): string {
+  const source = webview.cspSource;
+  return [
+    "default-src 'none'",
+    `img-src ${source} https: http: data: blob:`,
+    `media-src ${source} https: http: blob:`,
+    `frame-src ${source} https: http:`,
+    `style-src ${source} 'unsafe-inline'`,
+    `script-src 'nonce-${nonce}'`,
+    `font-src ${source}`,
+  ].join("; ");
 }
 
 function resolveAppearance(): "light" | "dark" {
@@ -50,6 +65,7 @@ function getWebviewHtml(
       overflow: hidden;
       background: var(--vscode-editor-background, ${appearance === "dark" ? "#1e1e1e" : "#ffffff"});
       color: var(--vscode-editor-foreground, ${appearance === "dark" ? "#cccccc" : "#333333"});
+      padding: 0;
     }
     #cherry-root {
       width: 100%;

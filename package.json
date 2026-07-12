@@ -30,18 +30,16 @@
     "build": "vite build && vite build --config vite.webview.config.ts",
     "watch": "vite build --watch",
     "watch:webview": "vite build --config vite.webview.config.ts --watch",
-    "typecheck": "tsc --noEmit",
-    "deps:sync": "pnpm --dir ../cherry-markdown-next build",
-    "deps:pack-install": "pnpm run deps:sync && pnpm --dir ../cherry-markdown-next pack --pack-destination .local-pack && pnpm add file:.local-pack/cherry-markdown-next-0.1.0.tgz"
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/node": "^22.20.0",
     "@types/vscode": "^1.125.0",
     "typescript": "^5.9.3",
-    "vite": "^5.4.21"
+    "vite": "8.0.5"
   },
   "private": true,
   "dependencies": {
-    "cherry-markdown-next": "file:../cherry-markdown-next"
+    "cherry-markdown-next": "^0.1.1"
   }
 }

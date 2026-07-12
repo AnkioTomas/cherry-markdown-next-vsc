@@ -25,7 +25,7 @@ export function getResourceRoots(
   return [...roots.values()];
 }
 
-export function resolveDocumentResource(
+function resolveDocumentResource(
   webview: vscode.Webview,
   documentUri: vscode.Uri,
   ref: string,
