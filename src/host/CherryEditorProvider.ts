@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import { CherryAi } from "./CherryAi";
-import { CherryResourceResolver } from "./CherryResourceResolver";
 import { CherryConfig, type UploadMode } from "./CherryConfig";
 import { CherryUploader } from "./CherryUploader";
 import {
@@ -23,6 +22,39 @@ export interface CherryBootPayload {
 }
 
 /**
+ * Webview 可加载的本地根目录：扩展目录 + 文档目录 + 工作区。
+ * 相对路径靠 HTML `<base href=asWebviewUri(docDir)>` 解析，不需要事后扫 DOM。
+ */
+function collectLocalResourceRoots(
+  extensionUri: vscode.Uri,
+  documentUri: vscode.Uri,
+): vscode.Uri[] {
+  const roots = new Map<string, vscode.Uri>();
+  roots.set(extensionUri.toString(), extensionUri);
+
+  const docDir = vscode.Uri.joinPath(documentUri, "..");
+  roots.set(docDir.toString(), docDir);
+
+  for (const folder of vscode.workspace.workspaceFolders ?? []) {
+    roots.set(folder.uri.toString(), folder.uri);
+  }
+  return [...roots.values()];
+}
+
+/** 文档旁目录的 webview base（必须带尾斜杠，否则最后一段会被吃掉） */
+function documentBaseHref(
+  webview: vscode.Webview,
+  documentUri: vscode.Uri,
+): string {
+  const docDir = vscode.Uri.joinPath(documentUri, "..");
+  return `${webview.asWebviewUri(docDir).toString().replace(/\/?$/, "/")}`;
+}
+
+function escapeHtmlAttr(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+}
+
+/**
  * Cherry Markdown 的自定义编辑器提供程序。
  * 负责管理 Webview 的生命周期、文档同步以及与前端插件的 IPC 通信。
  */
@@ -34,10 +66,6 @@ export class CherryEditorProvider implements vscode.CustomTextEditorProvider {
   /**
    * 解析并初始化自定义编辑器。
    * 每个打开的 Markdown 文档都会触发此方法，利用闭包隔离各自的状态。
-   *
-   * @param document 当前打开的文本文档
-   * @param webviewPanel VS Code 提供的 Webview 容器
-   * @param _token 取消令牌（未使用）
    */
   async resolveCustomTextEditor(
     document: vscode.TextDocument,
@@ -72,20 +100,17 @@ export class CherryEditorProvider implements vscode.CustomTextEditorProvider {
       aiEnabled: config.getItem<boolean>("ai.enabled", false),
     });
 
-    // 1. 初始化 Webview 资源解析器与基础选项
-    const resolver = new CherryResourceResolver(extensionUri, document.uri);
     webviewPanel.webview.options = {
       enableScripts: true,
-      localResourceRoots: resolver.getResourceRoots(),
+      localResourceRoots: collectLocalResourceRoots(extensionUri, document.uri),
     };
 
-    // 2. 注入初始 HTML 骨架
     webviewPanel.webview.html = this.getWebviewHtml(
       webviewPanel.webview,
       extensionUri,
+      document.uri,
     );
 
-    // 3. 监听 VS Code 文档变更，同步到 Webview
     vscode.workspace.onDidChangeTextDocument(
       (event) => {
         if (
@@ -103,7 +128,6 @@ export class CherryEditorProvider implements vscode.CustomTextEditorProvider {
       disposables,
     );
 
-    // 4. 监听主题切换，通知前端更新 UI
     vscode.window.onDidChangeActiveColorTheme(
       () => {
         webviewPanel.webview.postMessage({
@@ -115,7 +139,6 @@ export class CherryEditorProvider implements vscode.CustomTextEditorProvider {
       disposables,
     );
 
-    // 5. 配置变更 → 刷新 config 并重建 Cherry
     vscode.workspace.onDidChangeConfiguration(
       (event) => {
         if (!event.affectsConfiguration("cherryMarkdownNext", document.uri)) {
@@ -131,7 +154,6 @@ export class CherryEditorProvider implements vscode.CustomTextEditorProvider {
       disposables,
     );
 
-    // 6. 处理来自 Webview 的所有消息指令（command / reqId / data）
     webviewPanel.webview.onDidReceiveMessage(
       async (raw: ExtMessage) => {
         const data = (raw.data ?? {}) as Record<string, any>;
@@ -203,7 +225,6 @@ export class CherryEditorProvider implements vscode.CustomTextEditorProvider {
       disposables,
     );
 
-    // 7. Webview 销毁时清理所有事件监听器，避免内存泄漏
     webviewPanel.onDidDispose(
       () => disposables.forEach((d) => d.dispose()),
       null,
@@ -211,9 +232,6 @@ export class CherryEditorProvider implements vscode.CustomTextEditorProvider {
     );
   }
 
-  /**
-   * 判断当前 VS Code 主题是深色还是浅色。
-   */
   private resolveAppearance(): "light" | "dark" {
     const kind = vscode.window.activeColorTheme.kind;
     return kind === vscode.ColorThemeKind.Dark ||
@@ -223,15 +241,18 @@ export class CherryEditorProvider implements vscode.CustomTextEditorProvider {
   }
 
   /**
-   * 生成注入到 Webview 的 HTML 骨架代码。
+   * Webview HTML：`<base>` 指向文档目录的 asWebviewUri。
+   * Markdown 里的 `assets/x.png` 因此直接落到 localResourceRoots，无需扫 DOM / IPC 重写。
    */
   private getWebviewHtml(
     webview: vscode.Webview,
     extensionUri: vscode.Uri,
+    documentUri: vscode.Uri,
   ): string {
     const scriptUri = webview.asWebviewUri(
       vscode.Uri.joinPath(extensionUri, "dist", "webview", "main.js"),
     );
+    const baseHref = escapeHtmlAttr(documentBaseHref(webview, documentUri));
     const appearance = this.resolveAppearance();
     const source = webview.cspSource;
 
@@ -252,6 +273,7 @@ export class CherryEditorProvider implements vscode.CustomTextEditorProvider {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="color-scheme" content="${appearance === "dark" ? "dark" : "light"}" />
   <meta http-equiv="Content-Security-Policy" content="${csp}" />
+  <base href="${baseHref}" />
   <style>
     html, body {
       margin: 0;
