@@ -1,7 +1,7 @@
 {
   "name": "cherry-markdown-next-vsc",
   "displayName": "Cherry Markdown Next VSC",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "VS Code / Cursor extension for Cherry Markdown Next",
   "publisher": "ankio",
   "license": "MIT",
@@ -71,7 +71,7 @@
               "仅编辑区",
               "仅预览区"
             ],
-            "markdownDescription": "初始布局模式。"
+            "markdownDescription": "初始布局模式。\n\n默认：`split`。"
           },
           "cherryMarkdownNext.ui.theme": {
             "type": "string",
@@ -87,28 +87,28 @@
             "default": "default",
             "order": 2,
             "scope": "resource",
-            "markdownDescription": "编辑器主题 id（需已在 webview 中加载对应主题 CSS）。"
+            "markdownDescription": "编辑器主题 id（需已在 webview 中加载对应主题 CSS）。\n\n默认：`default`。"
           },
           "cherryMarkdownNext.ui.statusbar": {
             "type": "boolean",
             "default": true,
             "order": 3,
             "scope": "resource",
-            "markdownDescription": "显示底部状态栏。"
+            "markdownDescription": "显示底部状态栏（默认开启）。"
           },
           "cherryMarkdownNext.ui.sidebar": {
             "type": "boolean",
             "default": true,
             "order": 4,
             "scope": "resource",
-            "markdownDescription": "显示侧边栏。"
+            "markdownDescription": "显示侧边栏（默认开启）。"
           },
           "cherryMarkdownNext.ui.lineNumbers": {
             "type": "boolean",
             "default": true,
             "order": 5,
             "scope": "resource",
-            "markdownDescription": "编辑区显示行号。"
+            "markdownDescription": "编辑区显示行号（默认开启）。"
           }
         }
       },
@@ -136,35 +136,35 @@
               "调用 PicGo 桌面端 / picgo-core CLI",
               "调用 macOS uPic CLI"
             ],
-            "markdownDescription": "粘贴或拖入图片/文件时的处理方式（Cherry `onParseFile`）。"
+            "markdownDescription": "粘贴或拖入图片/文件时的处理方式（Cherry `onParseFile`）。\n\n默认：`off`。"
           },
           "cherryMarkdownNext.upload.directory": {
             "type": "string",
             "default": "assets",
             "order": 2,
             "scope": "resource",
-            "markdownDescription": "`local` 模式：相对文档目录的保存路径。"
+            "markdownDescription": "`local` 模式：相对文档目录的保存路径。\n\n默认：`assets`。"
           },
           "cherryMarkdownNext.upload.script": {
             "type": "string",
             "default": "",
             "order": 3,
             "scope": "resource",
-            "markdownDescription": "`script` 模式：可执行上传脚本路径（绝对路径，或相对工作区/文档目录）。扩展只追加图片路径参数，不代拼解释器。\n\n兼容 Typora：成功时 stdout 首行为 `http(s)` URL；失败时 stdout 输出错误文本。"
+            "markdownDescription": "`script` 模式：可执行上传脚本路径（绝对路径，或相对工作区/文档目录）。扩展只追加图片路径参数，不代拼解释器。\n\n兼容 Typora：成功时 stdout 首行为 `http(s)` URL；失败时 stdout 输出错误文本。\n\n默认：空（需自行配置）。"
           },
           "cherryMarkdownNext.upload.picgoPath": {
             "type": "string",
             "default": "",
             "order": 4,
             "scope": "resource",
-            "markdownDescription": "`picgo` 模式：PicGo 可执行文件路径。留空则自动探测（macOS `/Applications/PicGo.app/...`，或 PATH 中的 `picgo`）。"
+            "markdownDescription": "`picgo` 模式：PicGo 可执行文件路径。\n\n默认：空（自动探测：macOS `/Applications/PicGo.app/...`，或 PATH 中的 `picgo`）。"
           },
           "cherryMarkdownNext.upload.upicPath": {
             "type": "string",
             "default": "",
             "order": 5,
             "scope": "resource",
-            "markdownDescription": "`upic` 模式：uPic 可执行文件路径。留空则使用 `/Applications/uPic.app/Contents/MacOS/uPic`。"
+            "markdownDescription": "`upic` 模式：uPic 可执行文件路径。\n\n默认：空（使用 `/Applications/uPic.app/Contents/MacOS/uPic`）。"
           },
           "cherryMarkdownNext.upload.timeoutMs": {
             "type": "number",
@@ -172,7 +172,7 @@
             "minimum": 1000,
             "order": 6,
             "scope": "resource",
-            "markdownDescription": "CLI / 脚本上传超时（毫秒）。"
+            "markdownDescription": "CLI / 脚本上传超时（毫秒）。\n\n默认：`60000`。"
           }
         }
       },
@@ -186,7 +186,7 @@
             "default": false,
             "order": 1,
             "scope": "window",
-            "markdownDescription": "启用 AI 工具栏（润色 / 校对 / 翻译 / 摘要 / 自定义）。仅支持 OpenAI 兼容 Chat Completions。"
+            "markdownDescription": "启用 AI 工具栏（润色 / 校对 / 翻译 / 摘要 / 自定义）。仅支持 OpenAI 兼容 Chat Completions。\n\n默认：关闭。"
           },
           "cherryMarkdownNext.ai.provider": {
             "type": "string",
@@ -209,35 +209,35 @@
               "Ollama 本地（127.0.0.1:11434）",
               "自定义 OpenAI 兼容地址（需填写 endpoint）"
             ],
-            "markdownDescription": "AI 供应商预设。内置供应商自动填 endpoint 与默认模型；选 `custom` 时必须配置 `endpoint`。"
+            "markdownDescription": "AI 供应商预设。内置供应商自动填 endpoint 与默认模型；选 `custom` 时必须配置 `endpoint`。\n\n默认：`openai`。"
           },
           "cherryMarkdownNext.ai.endpoint": {
             "type": "string",
             "default": "",
             "order": 3,
             "scope": "window",
-            "markdownDescription": "Chat Completions 完整 URL。留空则使用供应商预设；非空时覆盖预设（适合代理 / 私有部署）。\n\n例：`https://api.openai.com/v1/chat/completions`"
+            "markdownDescription": "Chat Completions 完整 URL。留空则使用供应商预设；非空时覆盖预设（适合代理 / 私有部署）。\n\n供应商默认：\n- `openai` → `https://api.openai.com/v1/chat/completions`\n- `openrouter` → `https://openrouter.ai/api/v1/chat/completions`\n- `deepseek` → `https://api.deepseek.com/v1/chat/completions`\n- `moonshot` → `https://api.moonshot.cn/v1/chat/completions`\n- `ollama` → `http://127.0.0.1:11434/v1/chat/completions`\n- `custom` → `（必填）`\n\n例：`https://api.openai.com/v1/chat/completions`"
           },
           "cherryMarkdownNext.ai.apiKey": {
             "type": "string",
             "default": "",
             "order": 4,
             "scope": "window",
-            "markdownDescription": "API Key（写入 `Authorization: Bearer ...`）。**会进入 settings.json**，共享环境更推荐用 `apiKeyEnv`。Ollama 通常可留空。"
+            "markdownDescription": "API Key（写入 `Authorization: Bearer ...`）。**会进入 settings.json**，共享环境更推荐用 `apiKeyEnv`。Ollama 通常可留空。\n\n默认：空。"
           },
           "cherryMarkdownNext.ai.apiKeyEnv": {
             "type": "string",
             "default": "",
             "order": 5,
             "scope": "window",
-            "markdownDescription": "从环境变量读取 API Key（`apiKey` 为空时生效）。例：`OPENAI_API_KEY`、`DEEPSEEK_API_KEY`、`OPENROUTER_API_KEY`。"
+            "markdownDescription": "从环境变量读取 API Key（`apiKey` 为空时生效）。例：`OPENAI_API_KEY`、`DEEPSEEK_API_KEY`、`OPENROUTER_API_KEY`。\n\n默认：空。"
           },
           "cherryMarkdownNext.ai.model": {
             "type": "string",
             "default": "",
             "order": 6,
             "scope": "window",
-            "markdownDescription": "模型名称。留空则使用供应商默认（如 `gpt-4o-mini`、`deepseek-chat`、`openai/gpt-4o-mini`）。"
+            "markdownDescription": "模型名称。留空则使用当前供应商默认：\n- `openai` → `gpt-4o-mini`\n- `openrouter` → `openai/gpt-4o-mini`\n- `deepseek` → `deepseek-chat`\n- `moonshot` → `moonshot-v1-8k`\n- `ollama` → `llama3.2`\n- `custom` → `（必填）`"
           },
           "cherryMarkdownNext.ai.temperature": {
             "type": "number",
@@ -246,7 +246,7 @@
             "maximum": 2,
             "order": 7,
             "scope": "window",
-            "markdownDescription": "采样温度。`-1` 表示按动作使用内置默认（校对偏低、润色略高）；`0`–`2` 则统一覆盖。"
+            "markdownDescription": "采样温度。`-1` 表示按动作使用内置默认；`0`–`2` 则统一覆盖。\n\n动作默认（当值为 `-1`）：\n- `polish` → `0.4`\n- `proofread` → `0.1`\n- `translate` → `0.2`\n- `summarize` → `0.3`\n- `custom` → `0.4`"
           },
           "cherryMarkdownNext.ai.headers": {
             "type": "object",
@@ -256,7 +256,7 @@
             "default": {},
             "order": 8,
             "scope": "window",
-            "markdownDescription": "额外 HTTP 头。若已含 `Authorization`，则不再自动附加 Bearer。"
+            "markdownDescription": "额外 HTTP 头。若已含 `Authorization`，则不再自动附加 Bearer。\n\n默认：`{}`。"
           },
           "cherryMarkdownNext.ai.timeoutMs": {
             "type": "number",
@@ -264,47 +264,47 @@
             "minimum": 1000,
             "order": 9,
             "scope": "window",
-            "markdownDescription": "AI 请求超时（毫秒）。"
+            "markdownDescription": "AI 请求超时（毫秒）。\n\n默认：`120000`。"
           },
           "cherryMarkdownNext.ai.prompt.polish": {
             "type": "string",
-            "default": "",
+            "default": "你是资深中文技术写作者与 Markdown 编辑。任务：润色用户给出的 Markdown 片段。\n\n目标：\n- 表达更清晰、连贯、专业，去掉冗余与口语废话，但不改变原意与事实。\n- 统一术语与人称；理顺长句；修正明显别扭的语序。\n- 对英文专有名词、API、命令、路径保持原样。\n- 不要扩写成长文，不要添加原文没有的观点或章节。\n\n输出规则（必须遵守）：\n1. 只输出处理后的 Markdown 正文，不要开场白、不要总结、不要「如下所示」之类说明。\n2. 不要用 \\`\\`\\`markdown 包裹整个结果；原文里已有的代码块照常保留。\n3. 保留原有 Markdown 结构：标题层级、列表、引用、表格、链接、图片、脚注、GFM/Cherry 扩展语法（Alert、容器、卡片等）能保留则保留。\n4. 行内代码、代码块、公式、URL、锚点 id、frontmatter 键名不要擅自改写。\n5. 若原文为空或无需改动，仍返回合理结果（摘要类可给出简短说明；其余尽量保持可替换文本）。",
             "order": 10,
             "scope": "window",
-            "editPresentation": "multiline",
-            "markdownDescription": "「智能润色」system 提示词。**留空使用内置**；填写后整段替换内置提示（请自行写清输出约束）。"
+            "editPresentation": "multilineText",
+            "markdownDescription": "「智能润色」system 提示词。下方为内置默认；修改后整段替换。恢复默认可点齿轮 → Reset Setting。"
           },
           "cherryMarkdownNext.ai.prompt.proofread": {
             "type": "string",
-            "default": "",
+            "default": "你是严谨的中文校对编辑。任务：校对用户给出的 Markdown 片段。\n\n只做纠错，不做风格重写：\n- 错别字、多字漏字、同音误用（的/地/得 等）。\n- 标点、中英文夹杂空格、全半角混用。\n- 明显主谓残缺、搭配错误、重复字词。\n- 专有名词大小写、常见技术名拼写（在有把握时修正）。\n- 不要为了「更好看」改写句式；原意与结构尽量不动。\n\n输出规则（必须遵守）：\n1. 只输出处理后的 Markdown 正文，不要开场白、不要总结、不要「如下所示」之类说明。\n2. 不要用 \\`\\`\\`markdown 包裹整个结果；原文里已有的代码块照常保留。\n3. 保留原有 Markdown 结构：标题层级、列表、引用、表格、链接、图片、脚注、GFM/Cherry 扩展语法（Alert、容器、卡片等）能保留则保留。\n4. 行内代码、代码块、公式、URL、锚点 id、frontmatter 键名不要擅自改写。\n5. 若原文为空或无需改动，仍返回合理结果（摘要类可给出简短说明；其余尽量保持可替换文本）。",
             "order": 11,
             "scope": "window",
-            "editPresentation": "multiline",
-            "markdownDescription": "「纠错校对」system 提示词。**留空使用内置**；填写后整段替换。"
+            "editPresentation": "multilineText",
+            "markdownDescription": "「纠错校对」system 提示词。下方为内置默认；修改后整段替换。恢复默认可点齿轮 → Reset Setting。"
           },
           "cherryMarkdownNext.ai.prompt.translate": {
             "type": "string",
-            "default": "",
+            "default": "你是专业中英双语译者，熟悉技术文档与 Markdown。任务：翻译用户给出的 Markdown 片段。\n\n方向判定：\n- 若正文以中文为主 → 译为流畅、自然的英文。\n- 若正文以英文为主 → 译为规范、通顺的简体中文。\n- 中英混杂时：翻译叙述性文字，保留代码、标识符、命令、路径、URL、文件名不译。\n\n要求：\n- 术语前后一致；技术含义准确，避免机翻腔。\n- 保持 Markdown 标记与结构位置对应（标题、列表、表格列等）。\n- 链接文字可译，URL 本身不译；图片 alt 可译。\n\n输出规则（必须遵守）：\n1. 只输出处理后的 Markdown 正文，不要开场白、不要总结、不要「如下所示」之类说明。\n2. 不要用 \\`\\`\\`markdown 包裹整个结果；原文里已有的代码块照常保留。\n3. 保留原有 Markdown 结构：标题层级、列表、引用、表格、链接、图片、脚注、GFM/Cherry 扩展语法（Alert、容器、卡片等）能保留则保留。\n4. 行内代码、代码块、公式、URL、锚点 id、frontmatter 键名不要擅自改写。\n5. 若原文为空或无需改动，仍返回合理结果（摘要类可给出简短说明；其余尽量保持可替换文本）。",
             "order": 12,
             "scope": "window",
-            "editPresentation": "multiline",
-            "markdownDescription": "「翻译文本」system 提示词。**留空使用内置**；填写后整段替换。"
+            "editPresentation": "multilineText",
+            "markdownDescription": "「翻译文本」system 提示词。下方为内置默认；修改后整段替换。恢复默认可点齿轮 → Reset Setting。"
           },
           "cherryMarkdownNext.ai.prompt.summarize": {
             "type": "string",
-            "default": "",
+            "default": "你是信息提炼助手。任务：为用户给出的 Markdown 片段生成摘要。\n\n要求：\n- 使用简洁简体中文。\n- 抓核心论点与关键信息，去掉例子堆砌与重复表述。\n- 结构优先：3–8 条要点列表；若原文极短，可用 1–3 句概括。\n- 不要引入原文没有的信息；不确定处不要臆造。\n- 摘要本身使用合法 Markdown（可用列表/加粗），但不要复制原文全部内容。\n\n输出规则（必须遵守）：\n1. 只输出处理后的 Markdown 正文，不要开场白、不要总结、不要「如下所示」之类说明。\n2. 不要用 \\`\\`\\`markdown 包裹整个结果；原文里已有的代码块照常保留。\n3. 保留原有 Markdown 结构：标题层级、列表、引用、表格、链接、图片、脚注、GFM/Cherry 扩展语法（Alert、容器、卡片等）能保留则保留。\n4. 行内代码、代码块、公式、URL、锚点 id、frontmatter 键名不要擅自改写。\n5. 若原文为空或无需改动，仍返回合理结果（摘要类可给出简短说明；其余尽量保持可替换文本）。",
             "order": 13,
             "scope": "window",
-            "editPresentation": "multiline",
-            "markdownDescription": "「生成摘要」system 提示词。**留空使用内置**；填写后整段替换。"
+            "editPresentation": "multilineText",
+            "markdownDescription": "「生成摘要」system 提示词。下方为内置默认；修改后整段替换。恢复默认可点齿轮 → Reset Setting。"
           },
           "cherryMarkdownNext.ai.prompt.custom": {
             "type": "string",
-            "default": "",
+            "default": "你是可控的 Markdown 文本改写引擎。用户会给出「指令」与「文本」。\n严格按指令处理文本；指令未要求的内容不要擅自发挥。\n\n若指令与「保留 Markdown 结构」冲突，优先满足指令，但仍避免破坏代码块与 URL。\n若指令含糊，做最小必要改动并保持可直接替换。\n\n输出规则（必须遵守）：\n1. 只输出处理后的 Markdown 正文，不要开场白、不要总结、不要「如下所示」之类说明。\n2. 不要用 \\`\\`\\`markdown 包裹整个结果；原文里已有的代码块照常保留。\n3. 保留原有 Markdown 结构：标题层级、列表、引用、表格、链接、图片、脚注、GFM/Cherry 扩展语法（Alert、容器、卡片等）能保留则保留。\n4. 行内代码、代码块、公式、URL、锚点 id、frontmatter 键名不要擅自改写。\n5. 若原文为空或无需改动，仍返回合理结果（摘要类可给出简短说明；其余尽量保持可替换文本）。",
             "order": 14,
             "scope": "window",
-            "editPresentation": "multiline",
-            "markdownDescription": "「自定义」system 提示词。**留空使用内置**；填写后整段替换。用户对话框指令仍通过 user 消息传入。"
+            "editPresentation": "multilineText",
+            "markdownDescription": "「自定义」system 提示词。下方为内置默认；修改后整段替换。用户对话框指令仍通过 user 消息传入。恢复默认可点齿轮 → Reset Setting。"
           }
         }
       }
