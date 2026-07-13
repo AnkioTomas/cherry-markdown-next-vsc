@@ -163,18 +163,26 @@ export class CherryEditorProvider implements vscode.CustomTextEditorProvider {
             break;
 
           case "change": {
+            const next = data.text as string;
+            // 相同内容绝不 applyEdit，否则打开文件就会被标脏
+            if (typeof next !== "string" || next === document.getText()) {
+              break;
+            }
             suppressDocumentSync = true;
-            const edit = new vscode.WorkspaceEdit();
-            edit.replace(
-              document.uri,
-              new vscode.Range(
-                document.positionAt(0),
-                document.positionAt(document.getText().length),
-              ),
-              data.text as string,
-            );
-            await vscode.workspace.applyEdit(edit);
-            suppressDocumentSync = false;
+            try {
+              const edit = new vscode.WorkspaceEdit();
+              edit.replace(
+                document.uri,
+                new vscode.Range(
+                  document.positionAt(0),
+                  document.positionAt(document.getText().length),
+                ),
+                next,
+              );
+              await vscode.workspace.applyEdit(edit);
+            } finally {
+              suppressDocumentSync = false;
+            }
             break;
           }
 

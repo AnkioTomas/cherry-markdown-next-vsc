@@ -43,7 +43,8 @@ class CherryWebviewApp {
   private readonly bridge = new CherryBridge();
   private readonly root: HTMLElement;
   private editor: Cherry | null = null;
-  private applyingExternalUpdate = false;
+  /** 初始化 / 外部灌文期间吞掉 change，避免打开即脏 */
+  private muteChange = false;
 
   constructor() {
     const rootEl = document.getElementById("cherry-root");
@@ -79,6 +80,15 @@ class CherryWebviewApp {
     this.editor?.theme.setLightDark(appearance);
   }
 
+  /** 双 rAF：等 Cherry/CodeMirror 同步+异步 init change 刷完再放行 */
+  private releaseMute(): void {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        this.muteChange = false;
+      });
+    });
+  }
+
   private buildEditorOptions(boot: CherryBoot): EditorOptions {
     const editorOptions: EditorOptions = {
       value: boot.text,
@@ -110,6 +120,8 @@ class CherryWebviewApp {
   }
 
   private createEditor(boot: CherryBoot): void {
+    this.muteChange = true;
+
     if (this.editor) {
       this.editor.destroy();
       this.editor = null;
@@ -147,20 +159,22 @@ class CherryWebviewApp {
     this.editor = new Cherry(this.root, options);
 
     this.editor.eventBus.on("editor:change", (payload: EditorChangePayload) => {
-      if (this.applyingExternalUpdate) {
+      if (this.muteChange) {
         return;
       }
       this.bridge.post("change", { text: payload.markdown });
     });
+
+    this.releaseMute();
   }
 
   private updateMarkdown(text: string): void {
     if (!this.editor) {
       return;
     }
-    this.applyingExternalUpdate = true;
+    this.muteChange = true;
     this.editor.setMarkdown(text);
-    this.applyingExternalUpdate = false;
+    this.releaseMute();
   }
 }
 
