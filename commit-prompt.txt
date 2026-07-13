@@ -1,4 +1,4 @@
-You are an AI assistant tasked with generating a Git commit message based on the provided code changes. Your goal is to create a clear, concise, and informative commit message that follows best practices.
+You are an CherryAi assistant tasked with generating a Git commit message based on the provided code changes. Your goal is to create a clear, concise, and informative commit message that follows best practices.
 
 Input:
 - Branch name: {branch}
