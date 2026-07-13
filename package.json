@@ -1,9 +1,14 @@
 {
-  "name": "cherry-markdown-next-vs",
-  "displayName": "Cherry Markdown Next VS",
+  "name": "cherry-markdown-next-vsc",
+  "displayName": "Cherry Markdown Next VSC",
   "version": "1.0.0",
-  "description": "VSCode extension for Cherry Markdown Next",
+  "description": "VS Code / Cursor extension for Cherry Markdown Next",
   "publisher": "ankio",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AnkioTomas/cherry-markdown-next-vsc.git"
+  },
   "engines": {
     "vscode": "^1.125.0"
   },
@@ -290,7 +295,7 @@
     "watch": "vite build --watch",
     "watch:webview": "vite build --config vite.webview.config.ts --watch",
     "typecheck": "tsc --noEmit",
-    "package": "vsce package --no-dependencies --allow-missing-repository --out dist/cherry-markdown-next-vs.vsix"
+    "package": "vsce package --no-dependencies --out dist/cherry-markdown-next-vsc.vsix"
   },
   "devDependencies": {
     "@types/node": "^22.20.0",
