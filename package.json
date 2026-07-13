@@ -5,10 +5,31 @@
   "description": "VS Code / Cursor extension for Cherry Markdown Next",
   "publisher": "ankio",
   "license": "MIT",
+  "icon": "logo/icon.png",
+  "galleryBanner": {
+    "color": "#1a1b26",
+    "theme": "dark"
+  },
+  "categories": [
+    "Other",
+    "Formatters",
+    "Visualization"
+  ],
+  "keywords": [
+    "markdown",
+    "cherry",
+    "editor",
+    "preview",
+    "ai"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/AnkioTomas/cherry-markdown-next-vsc.git"
   },
+  "bugs": {
+    "url": "https://github.com/AnkioTomas/cherry-markdown-next-vsc/issues"
+  },
+  "homepage": "https://github.com/AnkioTomas/cherry-markdown-next-vsc#readme",
   "engines": {
     "vscode": "^1.125.0"
   },

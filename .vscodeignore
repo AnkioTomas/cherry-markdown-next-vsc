@@ -13,3 +13,7 @@ vite.webview.config.ts
 *.vsix
 commit-prompt.txt
 dist/**/*.map
+
+# 打包只带 Marketplace 图标，其余 logo 资产留给仓库/README
+logo/**
+!logo/icon.png

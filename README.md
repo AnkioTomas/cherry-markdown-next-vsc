@@ -1,6 +1,17 @@
-# Cherry Markdown Next VSC
+<p align="center">
+  <img src="logo/android-chrome-192x192.png" width="128" height="128" alt="Cherry Markdown Next VSC" />
+</p>
 
-基于 [Cherry Markdown Next](https://github.com/AnkioTomas/cherry-markdown-next) 的 VS Code / Cursor 自定义 Markdown 编辑器。
+<h1 align="center">Cherry Markdown Next VSC</h1>
+
+<p align="center">
+  基于 <a href="https://github.com/AnkioTomas/cherry-markdown-next">Cherry Markdown Next</a> 的 VS Code / Cursor 自定义 Markdown 编辑器
+</p>
+
+<p align="center">
+  <a href="https://marketplace.visualstudio.com/items?itemName=ankio.cherry-markdown-next-vsc"><img src="https://img.shields.io/visual-studio-marketplace/v/ankio.cherry-markdown-next-vsc?label=VS%20Marketplace" alt="VS Marketplace" /></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License" /></a>
+</p>
 
 打开 `*.md` 时默认使用 Cherry 编辑器：分栏预览、主题、图片上传、OpenAI 兼容 AI 工具栏。
 
@@ -125,6 +136,8 @@ pnpm run build
 ### 结构
 
 ```text
+logo/
+  icon.png                  # Marketplace / VSIX 图标（128×128）
 src/
   extension.ts              # 激活入口
   host/                     # Extension Host（Node）
