@@ -26,20 +26,79 @@
     ],
     "configuration": [
       {
+        "id": "cherryMarkdownNext.ui",
+        "title": "界面",
+        "order": 1,
+        "properties": {
+          "cherryMarkdownNext.ui.layout": {
+            "type": "string",
+            "enum": ["split", "edit", "preview"],
+            "default": "split",
+            "order": 1,
+            "scope": "resource",
+            "enumDescriptions": [
+              "编辑区与预览区并排",
+              "仅编辑区",
+              "仅预览区"
+            ],
+            "markdownDescription": "初始布局模式。"
+          },
+          "cherryMarkdownNext.ui.theme": {
+            "type": "string",
+            "enum": [
+              "default",
+              "github",
+              "claude",
+              "morandi",
+              "latex",
+              "vue",
+              "notion"
+            ],
+            "default": "default",
+            "order": 2,
+            "scope": "resource",
+            "markdownDescription": "编辑器主题 id（需已在 webview 中加载对应主题 CSS）。"
+          },
+          "cherryMarkdownNext.ui.statusbar": {
+            "type": "boolean",
+            "default": true,
+            "order": 3,
+            "scope": "resource",
+            "markdownDescription": "显示底部状态栏。"
+          },
+          "cherryMarkdownNext.ui.sidebar": {
+            "type": "boolean",
+            "default": true,
+            "order": 4,
+            "scope": "resource",
+            "markdownDescription": "显示侧边栏。"
+          },
+          "cherryMarkdownNext.ui.lineNumbers": {
+            "type": "boolean",
+            "default": true,
+            "order": 5,
+            "scope": "resource",
+            "markdownDescription": "编辑区显示行号。"
+          }
+        }
+      },
+      {
         "id": "cherryMarkdownNext.files",
         "title": "文件处理",
-        "order": 1,
+        "order": 2,
         "properties": {
           "cherryMarkdownNext.upload.mode": {
             "type": "string",
-            "enum": ["off", "workspace", "http"],
-            "default": "workspace",
+            "enum": ["off", "local", "script", "picgo", "upic"],
+            "default": "off",
             "order": 1,
             "scope": "resource",
             "enumDescriptions": [
               "禁用粘贴/拖入上传（不注册 Cherry `onParseFile`）",
-              "保存到当前 Markdown 旁，写入相对路径",
-              "上传到自定义 HTTP 接口，写入返回的 URL"
+              "保存到文档旁目录（默认 assets/），写入相对路径",
+              "调用本地脚本上传（Typora Custom Command 约定）",
+              "调用 PicGo 桌面端 / picgo-core CLI",
+              "调用 macOS uPic CLI"
             ],
             "markdownDescription": "粘贴或拖入图片/文件时的处理方式（Cherry `onParseFile`）。"
           },
@@ -48,95 +107,108 @@
             "default": "assets",
             "order": 2,
             "scope": "resource",
-            "markdownDescription": "`workspace` 模式：相对文档目录的子目录。空字符串表示与文档同级。"
+            "markdownDescription": "`local` 模式：相对文档目录的保存路径。"
           },
-          "cherryMarkdownNext.upload.url": {
+          "cherryMarkdownNext.upload.script": {
             "type": "string",
             "default": "",
             "order": 3,
             "scope": "resource",
-            "markdownDescription": "`http` 模式：上传地址（`POST multipart/form-data`）。"
+            "markdownDescription": "`script` 模式：可执行上传脚本路径（绝对路径，或相对工作区/文档目录）。扩展只追加图片路径参数，不代拼解释器。\n\n兼容 Typora：成功时 stdout 首行为 `http(s)` URL；失败时 stdout 输出错误文本。"
           },
-          "cherryMarkdownNext.upload.formField": {
+          "cherryMarkdownNext.upload.picgoPath": {
             "type": "string",
-            "default": "file",
+            "default": "",
             "order": 4,
             "scope": "resource",
-            "markdownDescription": "`http` 模式：multipart 文件字段名，默认 `file`。"
+            "markdownDescription": "`picgo` 模式：PicGo 可执行文件路径。留空则自动探测（macOS `/Applications/PicGo.app/...`，或 PATH 中的 `picgo`）。"
           },
-          "cherryMarkdownNext.upload.urlField": {
+          "cherryMarkdownNext.upload.upicPath": {
             "type": "string",
-            "default": "url",
+            "default": "",
             "order": 5,
             "scope": "resource",
-            "markdownDescription": "`http` 模式：从 JSON 响应取 URL 的字段路径，支持点号嵌套，如 `url`、`data.url`。"
-          },
-          "cherryMarkdownNext.upload.headers": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            },
-            "default": {},
-            "order": 6,
-            "scope": "resource",
-            "markdownDescription": "`http` 模式：额外 HTTP 头。例：`{\"Authorization\": \"Bearer xxx\"}`。"
+            "markdownDescription": "`upic` 模式：uPic 可执行文件路径。留空则使用 `/Applications/uPic.app/Contents/MacOS/uPic`。"
           },
           "cherryMarkdownNext.upload.timeoutMs": {
             "type": "number",
             "default": 60000,
             "minimum": 1000,
-            "order": 7,
+            "order": 6,
             "scope": "resource",
-            "markdownDescription": "`http` 模式：上传超时（毫秒）。"
+            "markdownDescription": "CLI / 脚本上传超时（毫秒）。"
           }
         }
       },
       {
         "id": "cherryMarkdownNext.ai",
         "title": "AI",
-        "order": 2,
+        "order": 3,
         "properties": {
           "cherryMarkdownNext.ai.enabled": {
             "type": "boolean",
             "default": false,
             "order": 1,
             "scope": "window",
-            "markdownDescription": "启用 AI 工具栏（润色 / 校对 / 翻译 / 摘要 / 自定义）。需同时配置 `endpoint`。"
+            "markdownDescription": "启用 AI 工具栏（润色 / 校对 / 翻译 / 摘要 / 自定义）。仅支持 OpenAI 兼容 Chat Completions。"
+          },
+          "cherryMarkdownNext.ai.provider": {
+            "type": "string",
+            "enum": [
+              "openai",
+              "openrouter",
+              "deepseek",
+              "moonshot",
+              "ollama",
+              "custom"
+            ],
+            "default": "openai",
+            "order": 2,
+            "scope": "window",
+            "enumDescriptions": [
+              "OpenAI / ChatGPT（api.openai.com）",
+              "OpenRouter（openrouter.ai）",
+              "DeepSeek（api.deepseek.com）",
+              "Moonshot Kimi（api.moonshot.cn）",
+              "Ollama 本地（127.0.0.1:11434）",
+              "自定义 OpenAI 兼容地址（需填写 endpoint）"
+            ],
+            "markdownDescription": "AI 供应商预设。内置供应商自动填 endpoint 与默认模型；选 `custom` 时必须配置 `endpoint`。"
           },
           "cherryMarkdownNext.ai.endpoint": {
             "type": "string",
             "default": "",
-            "order": 2,
+            "order": 3,
             "scope": "window",
-            "markdownDescription": "OpenAI 兼容 Chat Completions 地址。\n\n例：`https://api.openai.com/v1/chat/completions`、`https://api.deepseek.com/v1/chat/completions`"
+            "markdownDescription": "Chat Completions 完整 URL。留空则使用供应商预设；非空时覆盖预设（适合代理 / 私有部署）。\n\n例：`https://api.openai.com/v1/chat/completions`"
           },
           "cherryMarkdownNext.ai.apiKey": {
             "type": "string",
             "default": "",
-            "order": 3,
+            "order": 4,
             "scope": "window",
-            "markdownDescription": "API Key（写入 `Authorization: Bearer ...`）。**会进入 settings.json**，共享环境更推荐用 `apiKeyEnv`。"
+            "markdownDescription": "API Key（写入 `Authorization: Bearer ...`）。**会进入 settings.json**，共享环境更推荐用 `apiKeyEnv`。Ollama 通常可留空。"
           },
           "cherryMarkdownNext.ai.apiKeyEnv": {
             "type": "string",
             "default": "",
-            "order": 4,
+            "order": 5,
             "scope": "window",
-            "markdownDescription": "从环境变量读取 API Key（`apiKey` 为空时生效）。例：`OPENAI_API_KEY`。"
+            "markdownDescription": "从环境变量读取 API Key（`apiKey` 为空时生效）。例：`OPENAI_API_KEY`、`DEEPSEEK_API_KEY`、`OPENROUTER_API_KEY`。"
           },
           "cherryMarkdownNext.ai.model": {
             "type": "string",
-            "default": "gpt-4o-mini",
-            "order": 5,
+            "default": "",
+            "order": 6,
             "scope": "window",
-            "markdownDescription": "模型名称，随服务商而定（如 `gpt-4o-mini`、`deepseek-chat`）。"
+            "markdownDescription": "模型名称。留空则使用供应商默认（如 `gpt-4o-mini`、`deepseek-chat`、`openai/gpt-4o-mini`）。"
           },
           "cherryMarkdownNext.ai.temperature": {
             "type": "number",
             "default": -1,
             "minimum": -1,
             "maximum": 2,
-            "order": 6,
+            "order": 7,
             "scope": "window",
             "markdownDescription": "采样温度。`-1` 表示按动作使用内置默认（校对偏低、润色略高）；`0`–`2` 则统一覆盖。"
           },
@@ -146,7 +218,7 @@
               "type": "string"
             },
             "default": {},
-            "order": 7,
+            "order": 8,
             "scope": "window",
             "markdownDescription": "额外 HTTP 头。若已含 `Authorization`，则不再自动附加 Bearer。"
           },
@@ -154,14 +226,14 @@
             "type": "number",
             "default": 120000,
             "minimum": 1000,
-            "order": 8,
+            "order": 9,
             "scope": "window",
             "markdownDescription": "AI 请求超时（毫秒）。"
           },
           "cherryMarkdownNext.ai.prompt.polish": {
             "type": "string",
             "default": "",
-            "order": 9,
+            "order": 10,
             "scope": "window",
             "editPresentation": "multiline",
             "markdownDescription": "「智能润色」system 提示词。**留空使用内置**；填写后整段替换内置提示（请自行写清输出约束）。"
@@ -169,7 +241,7 @@
           "cherryMarkdownNext.ai.prompt.proofread": {
             "type": "string",
             "default": "",
-            "order": 10,
+            "order": 11,
             "scope": "window",
             "editPresentation": "multiline",
             "markdownDescription": "「纠错校对」system 提示词。**留空使用内置**；填写后整段替换。"
@@ -177,7 +249,7 @@
           "cherryMarkdownNext.ai.prompt.translate": {
             "type": "string",
             "default": "",
-            "order": 11,
+            "order": 12,
             "scope": "window",
             "editPresentation": "multiline",
             "markdownDescription": "「翻译文本」system 提示词。**留空使用内置**；填写后整段替换。"
@@ -185,7 +257,7 @@
           "cherryMarkdownNext.ai.prompt.summarize": {
             "type": "string",
             "default": "",
-            "order": 12,
+            "order": 13,
             "scope": "window",
             "editPresentation": "multiline",
             "markdownDescription": "「生成摘要」system 提示词。**留空使用内置**；填写后整段替换。"
@@ -193,7 +265,7 @@
           "cherryMarkdownNext.ai.prompt.custom": {
             "type": "string",
             "default": "",
-            "order": 13,
+            "order": 14,
             "scope": "window",
             "editPresentation": "multiline",
             "markdownDescription": "「自定义」system 提示词。**留空使用内置**；填写后整段替换。用户对话框指令仍通过 user 消息传入。"
