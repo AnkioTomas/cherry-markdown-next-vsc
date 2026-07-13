@@ -52,7 +52,7 @@ class CherryWebviewApp {
     }
     this.root = rootEl;
 
-    // Host 推送：外部改文档 / 主题切换
+    // Host 推送：外部改文档 / 主题切换 / 配置重建
     this.bridge.on("update", (data) => {
       const text = (data as { text?: string })?.text;
       if (typeof text === "string") {
@@ -65,16 +65,16 @@ class CherryWebviewApp {
         this.applyAppearance(appearance);
       }
     });
-
-    this.bridge.on("destroy", () => {
-      this.editor?.destroy();
-    })
+    this.bridge.on("reconfigure", (data) => {
+      this.createEditor(data as CherryBoot);
+    });
 
     // 向 Host 要初始化数据，再创建编辑器
     void this.bridge.ask<CherryBoot>("ready").then((boot) => {
       this.createEditor(boot);
     });
   }
+
   private applyAppearance(appearance: "light" | "dark"): void {
     this.editor?.theme.setLightDark(appearance);
   }
@@ -109,22 +109,15 @@ class CherryWebviewApp {
     return editorOptions;
   }
 
-
   private createEditor(boot: CherryBoot): void {
-    const { text, appearance } = boot;
-
-    this.applyAppearance(appearance);
-
     if (this.editor) {
-      this.applyingExternalUpdate = true;
-      this.editor.setMarkdown(text);
-      this.applyingExternalUpdate = false;
-      return;
+      this.editor.destroy();
+      this.editor = null;
     }
 
     const options: CherryOptions = {
       layout: boot.layout as CherryOptions["layout"],
-      appearance: appearance ?? "light",
+      appearance: boot.appearance ?? "light",
       themeId: boot.theme,
       statusbar: boot.statusbar,
       sidebar: boot.sidebar,
