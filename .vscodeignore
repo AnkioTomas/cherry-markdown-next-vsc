@@ -1,5 +1,6 @@
 .vscode/**
 .vscode-test/**
+.idea/**
 src/**
 node_modules/**
 pnpm-lock.yaml
@@ -9,3 +10,6 @@ vite.config.ts
 vite.webview.config.ts
 .gitignore
 .local-pack/**
+*.vsix
+commit-prompt.txt
+dist/**/*.map

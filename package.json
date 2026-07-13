@@ -5,7 +5,7 @@
   "description": "VSCode extension for Cherry Markdown Next",
   "publisher": "ankio",
   "engines": {
-    "vscode": "^1.80.0"
+    "vscode": "^1.125.0"
   },
   "main": "./dist/extension.js",
   "activationEvents": [
@@ -32,7 +32,11 @@
         "properties": {
           "cherryMarkdownNext.ui.layout": {
             "type": "string",
-            "enum": ["split", "edit", "preview"],
+            "enum": [
+              "split",
+              "edit",
+              "preview"
+            ],
             "default": "split",
             "order": 1,
             "scope": "resource",
@@ -89,7 +93,13 @@
         "properties": {
           "cherryMarkdownNext.upload.mode": {
             "type": "string",
-            "enum": ["off", "local", "script", "picgo", "upic"],
+            "enum": [
+              "off",
+              "local",
+              "script",
+              "picgo",
+              "upic"
+            ],
             "default": "off",
             "order": 1,
             "scope": "resource",
@@ -279,11 +289,13 @@
     "build": "vite build && vite build --config vite.webview.config.ts",
     "watch": "vite build --watch",
     "watch:webview": "vite build --config vite.webview.config.ts --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "package": "vsce package --no-dependencies --allow-missing-repository --out dist/cherry-markdown-next-vs.vsix"
   },
   "devDependencies": {
     "@types/node": "^22.20.0",
     "@types/vscode": "^1.125.0",
+    "@vscode/vsce": "^3.9.2",
     "typescript": "^5.9.3",
     "vite": "8.0.5"
   },
