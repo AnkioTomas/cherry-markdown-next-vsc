@@ -1,7 +1,7 @@
 {
   "name": "cherry-markdown-next-vsc",
   "displayName": "Cherry Markdown Next VSC",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "VS Code / Cursor extension for Cherry Markdown Next",
   "publisher": "ankio",
   "license": "MIT",
