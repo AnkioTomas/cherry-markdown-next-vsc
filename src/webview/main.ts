@@ -8,217 +8,167 @@ import "cherry-markdown-next/editor.css";
 import "cherry-markdown-next/transformer.css";
 import "./themes.css";
 import "./styles.css";
-import {
-  bridgeRequest,
-  createBridgedStorage,
-  fileToBase64,
-  settleBridgeResult,
-} from "./bridge";
-import { bindLayoutRefresh } from "./layout";
-import {
-  bindPreviewResourceRewrite,
-  handleResolvedResources,
-  scheduleResourceRewrite,
-} from "./resources";
+import { CherryBridge } from "./CherryBridge";
 
 interface EditorChangePayload {
   markdown: string;
 }
 
-interface WebviewConfig {
+interface CherryBoot {
+  text: string;
+  appearance: "light" | "dark";
+  layout: string;
+  theme: string;
+  statusbar: boolean;
+  sidebar: boolean;
+  lineNumbers: boolean;
   uploadEnabled: boolean;
   aiEnabled: boolean;
 }
 
-interface CherryBoot {
-  text: string;
-  appearance: "light" | "dark";
-  config?: WebviewConfig;
-  storageSnapshot?: Record<string, string>;
-}
-
 const SETTINGS_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" class="cherry-toolbar-icon" aria-hidden="true"><path fill="currentColor" d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.15 7.15 0 0 0-1.62-.94l-.36-2.54A.48.48 0 0 0 14 2h-4a.48.48 0 0 0-.48.42l-.36 2.54c-.59.24-1.13.55-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.65 8.87a.49.49 0 0 0 .12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94L2.77 14.5a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.39.3.59.22l2.39-.96c.5.39 1.03.7 1.62.94l.36 2.54c.05.24.24.42.48.42h4c.24 0 .44-.18.48-.42l.36-2.54c.59-.24 1.13-.55 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>`;
 
-const vscode = acquireVsCodeApi();
-const rootEl = document.getElementById("cherry-root");
-if (!rootEl) {
-  throw new Error("Missing #cherry-root");
-}
-const root: HTMLElement = rootEl;
-
-let editor: Cherry | null = null;
-let applyingExternalUpdate = false;
-let unbindResourceRewrite: (() => void) | null = null;
-let unbindLayoutRefresh: (() => void) | null = null;
-
-function refreshSplitLayout(): void {
-  if (!editor || editor.getLayout() !== "split") {
-    return;
+export async function fileToBase64(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
   }
-  editor.setLayout("split");
+  return btoa(binary);
 }
 
-function applyAppearance(appearance: "light" | "dark"): void {
-  document.documentElement.classList.toggle(
-    "cherry-vscode-dark",
-    appearance === "dark",
-  );
-  document.body.classList.toggle("cherry-vscode-dark", appearance === "dark");
-  editor?.theme.setLightDark(appearance);
-}
+class CherryWebviewApp {
+  private readonly bridge = new CherryBridge();
+  private readonly root: HTMLElement;
+  private editor: Cherry | null = null;
+  private applyingExternalUpdate = false;
 
-function buildEditorOptions(
-  text: string,
-  config: WebviewConfig,
-): EditorOptions {
-  const editorOptions: EditorOptions = {
-    value: text,
-    lineNumbers: true,
-  };
+  constructor() {
+    const rootEl = document.getElementById("cherry-root");
+    if (!rootEl) {
+      throw new Error("Missing #cherry-root");
+    }
+    this.root = rootEl;
 
-  if (config.uploadEnabled) {
-    editorOptions.onParseFile = async (file) => {
-      const dataBase64 = await fileToBase64(file);
-      return bridgeRequest<{ url: string; msg: string }>(
-        (message) => vscode.postMessage(message),
-        "uploadFile",
-        {
+    // Host 推送：外部改文档 / 主题切换
+    this.bridge.on("update", (data) => {
+      const text = (data as { text?: string })?.text;
+      if (typeof text === "string") {
+        this.updateMarkdown(text);
+      }
+    });
+    this.bridge.on("appearance", (data) => {
+      const appearance = (data as { appearance?: "light" | "dark" })?.appearance;
+      if (appearance === "light" || appearance === "dark") {
+        this.applyAppearance(appearance);
+      }
+    });
+
+    this.bridge.on("destroy", () => {
+      this.editor?.destroy();
+    })
+
+    // 向 Host 要初始化数据，再创建编辑器
+    void this.bridge.ask<CherryBoot>("ready").then((boot) => {
+      this.createEditor(boot);
+    });
+  }
+  private applyAppearance(appearance: "light" | "dark"): void {
+    this.editor?.theme.setLightDark(appearance);
+  }
+
+  private buildEditorOptions(boot: CherryBoot): EditorOptions {
+    const editorOptions: EditorOptions = {
+      value: boot.text,
+      lineNumbers: boot.lineNumbers,
+    };
+
+    if (boot.uploadEnabled) {
+      editorOptions.onParseFile = async (file) => {
+        const dataBase64 = await fileToBase64(file);
+        return this.bridge.ask<{ url: string; msg: string }>("uploadFile", {
           name: file.name,
           mime: file.type,
           dataBase64,
-        },
-      );
-    };
+        });
+      };
+    }
+
+    if (boot.aiEnabled) {
+      editorOptions.onAiRequest = async (action, selected, prompts) => {
+        return this.bridge.ask<string>("aiRequest", {
+          action,
+          text: selected,
+          prompts,
+        });
+      };
+    }
+
+    return editorOptions;
   }
 
-  if (config.aiEnabled) {
-    editorOptions.onAiRequest = async (action, selected, prompts) => {
-      return bridgeRequest<string>(
-        (message) => vscode.postMessage(message),
-        "aiRequest",
-        { action, text: selected, prompts },
-      );
-    };
-  }
 
-  return editorOptions;
-}
+  private createEditor(boot: CherryBoot): void {
+    const { text, appearance } = boot;
 
-function createEditor(boot: CherryBoot): void {
-  const { text, appearance } = boot;
-  const config: WebviewConfig = boot.config ?? {
-    uploadEnabled: false,
-    aiEnabled: false,
-  };
+    this.applyAppearance(appearance);
 
-  applyAppearance(appearance);
-
-  if (editor) {
-    applyingExternalUpdate = true;
-    editor.setMarkdown(text);
-    applyingExternalUpdate = false;
-    return;
-  }
-
-  // 结构对齐 cherry-markdown-next demo：onAiRequest / onParseFile 挂在 editor 下。
-  // 未配 fetchFiles 时侧栏只显示大纲（TOC）。
-  const options: CherryOptions = {
-    layout: "split",
-    appearance,
-    themeId: "default",
-    statusbar: true,
-    sidebar: true,
-    storage: createBridgedStorage(
-      boot.storageSnapshot ?? {},
-      (message) => vscode.postMessage(message),
-    ),
-    toolbar: {
-      items: [
-        ...DEFAULT_TOOLBAR_ITEMS,
-        {
-          id: "vscode-settings",
-          type: "button",
-          label: "设置",
-          title: "打开 Cherry Markdown Next 设置",
-          icon: SETTINGS_ICON,
-          onClick: () => {
-            vscode.postMessage({ type: "openSettings" });
-          },
-        },
-      ],
-    },
-    preview: {
-      /** 仅在纯预览布局下生效 */
-      maxWidth: "720px",
-    },
-    editor: buildEditorOptions(text, config),
-  };
-
-  editor = new Cherry(root, options);
-
-  unbindLayoutRefresh?.();
-  unbindLayoutRefresh = bindLayoutRefresh(root, refreshSplitLayout);
-
-  unbindResourceRewrite?.();
-  unbindResourceRewrite = bindPreviewResourceRewrite(
-    editor.eventBus,
-    (message) => vscode.postMessage(message),
-  );
-  // Cherry 首次 paint 在构造函数内同步完成，上面的监听会错过 preview:rendered；
-  // 立刻补扫一次，否则相对路径图片会一直打到 webview 源站 → 403。
-  scheduleResourceRewrite((message) => vscode.postMessage(message));
-
-  editor.eventBus.on("editor:change", (payload: EditorChangePayload) => {
-    if (applyingExternalUpdate) {
+    if (this.editor) {
+      this.applyingExternalUpdate = true;
+      this.editor.setMarkdown(text);
+      this.applyingExternalUpdate = false;
       return;
     }
-    vscode.postMessage({ type: "change", text: payload.markdown });
-  });
-}
 
-window.addEventListener("message", (event) => {
-  const message = event.data;
-  switch (message.type) {
-    case "init":
-      createEditor({
-        text: message.text as string,
-        appearance: message.appearance as "light" | "dark",
-        config: message.config as WebviewConfig | undefined,
-        storageSnapshot: message.storageSnapshot as
-          | Record<string, string>
-          | undefined,
-      });
-      break;
-    case "update":
-      if (!editor) {
+    const options: CherryOptions = {
+      layout: boot.layout as CherryOptions["layout"],
+      appearance: appearance ?? "light",
+      themeId: boot.theme,
+      statusbar: boot.statusbar,
+      sidebar: boot.sidebar,
+      toolbar: {
+        items: [
+          ...DEFAULT_TOOLBAR_ITEMS.filter(
+            (item) => boot.aiEnabled || item.id !== "ai",
+          ),
+          {
+            id: "vscode-settings",
+            type: "button",
+            label: "设置",
+            title: "打开 Cherry Markdown Next 设置",
+            icon: SETTINGS_ICON,
+            onClick: () => {
+              this.bridge.post("openSettings");
+            },
+          },
+        ],
+      },
+      preview: {
+        maxWidth: "720px",
+      },
+      editor: this.buildEditorOptions(boot),
+    };
+
+    this.editor = new Cherry(this.root, options);
+
+    this.editor.eventBus.on("editor:change", (payload: EditorChangePayload) => {
+      if (this.applyingExternalUpdate) {
         return;
       }
-      applyingExternalUpdate = true;
-      editor.setMarkdown(message.text as string);
-      applyingExternalUpdate = false;
-      break;
-    case "appearance":
-      applyAppearance(message.appearance as "light" | "dark");
-      break;
-    case "resolvedResources":
-      handleResolvedResources(message.resources as Record<string, string>);
-      scheduleResourceRewrite((payload) => vscode.postMessage(payload));
-      break;
-    case "uploadFileResult":
-      settleBridgeResult(message, (msg) => ({
-        url: msg.url as string,
-        msg: (msg.msg as string) || "",
-      }));
-      break;
-    case "aiRequestResult":
-      settleBridgeResult(message, (msg) => msg.result as string);
-      break;
+      this.bridge.post("change", { text: payload.markdown });
+    });
   }
-});
 
-const boot = window.__CHERRY_BOOT__;
-if (boot) {
-  createEditor(boot);
-} else {
-  vscode.postMessage({ type: "ready" });
+  private updateMarkdown(text: string): void {
+    if (!this.editor) {
+      return;
+    }
+    this.applyingExternalUpdate = true;
+    this.editor.setMarkdown(text);
+    this.applyingExternalUpdate = false;
+  }
 }
+
+new CherryWebviewApp();
