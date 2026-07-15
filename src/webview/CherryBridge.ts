@@ -2,6 +2,7 @@
 type Pending = {
   resolve: (value: unknown) => void;
   reject: (error: Error) => void;
+  onStream?: (data: unknown) => void;
 };
 
 /**
@@ -16,6 +17,8 @@ export type ExtMessage = {
   reqId?: string;
   data?: unknown;
   error?: string;
+  /** 为 true 表示流式中间推送，reqId 不结算 */
+  streaming?: boolean;
 };
 
 /** 只要能 postMessage 即可，避免 webview 侧依赖 vscode 模块 */
@@ -86,14 +89,44 @@ export class CherryBridge {
     });
   }
 
+  /**
+   * 带流式中间推送的异步请求：Host 可在最终 resolve 前多次推送 streaming 数据。
+   *
+   * @param command 指令名
+   * @param data 请求载荷
+   * @param onStream 每次收到 streaming 推送时调用
+   * @returns 最终结果
+   */
+  askStream<T = unknown>(
+    command: string,
+    data: unknown,
+    onStream: (chunk: unknown) => void,
+  ): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const reqId = `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      this.pending.set(reqId, {
+        resolve: (value) => resolve(value as T),
+        reject,
+        onStream,
+      });
+      this.vscode.postMessage({ command, reqId, data } satisfies ExtMessage);
+    });
+  }
+
   private onHostMessage(message: ExtMessage): void {
     if (!message?.command) {
       return;
     }
 
-    // 带 reqId 且在 pending 中：结算 ask
+    // 带 reqId 且在 pending 中
     if (message.reqId && this.pending.has(message.reqId)) {
       const entry = this.pending.get(message.reqId)!;
+      // 流式中间推送：不结算，交给 onStream 处理
+      if (message.streaming) {
+        entry.onStream?.(message.data);
+        return;
+      }
+      // 最终结算
       this.pending.delete(message.reqId);
       if (message.error) {
         entry.reject(new Error(message.error));

@@ -131,6 +131,7 @@ ${CherryAi.OUTPUT_RULES}
     action: string,
     text: string,
     prompts?: string,
+    onUpdate?: (content: string, thinking?: string) => void,
   ): Promise<string> {
     if (!this.config.getItem<boolean>("ai.enabled", false)) {
       throw new Error("AI 未启用");
@@ -154,6 +155,8 @@ ${CherryAi.OUTPUT_RULES}
       headers.Authorization = `Bearer ${apiKey}`;
     }
 
+    const useStream = Boolean(onUpdate);
+
     const response = await fetch(endpoint, {
       method: "POST",
       headers,
@@ -164,6 +167,7 @@ ${CherryAi.OUTPUT_RULES}
           { role: "user", content: userContent },
         ],
         temperature,
+        stream: useStream,
       }),
       signal: AbortSignal.timeout(timeoutMs),
     });
@@ -173,6 +177,10 @@ ${CherryAi.OUTPUT_RULES}
       throw new Error(
         `AI 请求失败 HTTP ${response.status}${detail ? `: ${detail.slice(0, 200)}` : ""}`,
       );
+    }
+
+    if (useStream) {
+      return this.readSSEStream(response, onUpdate!);
     }
 
     const data = (await response.json()) as {
@@ -189,6 +197,73 @@ ${CherryAi.OUTPUT_RULES}
       throw new Error("AI 响应缺少内容");
     }
     return this.stripModelFences(content);
+  }
+
+  /**
+   * 逐行解析 SSE 流，累积 delta content 并通过 onUpdate 回调推送中间结果。
+   */
+  private async readSSEStream(
+    response: Response,
+    onUpdate: (content: string, thinking?: string) => void,
+  ): Promise<string> {
+    const body = response.body;
+    if (!body) {
+      throw new Error("SSE 响应无 body");
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let accumulated = "";
+
+    for await (const chunk of body as AsyncIterable<Uint8Array>) {
+      buffer += decoder.decode(chunk, { stream: true });
+      const lines = buffer.split("\n");
+      // 最后一行可能不完整，保留
+      buffer = lines.pop() ?? "";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith(":")) {
+          continue;
+        }
+        if (trimmed === "data: [DONE]") {
+          break;
+        }
+        if (!trimmed.startsWith("data: ")) {
+          continue;
+        }
+
+        let parsed: {
+          choices?: Array<{ delta?: { content?: string; reasoning_content?: string } }>;
+          error?: { message?: string };
+        };
+        try {
+          parsed = JSON.parse(trimmed.slice(6));
+        } catch {
+          continue;
+        }
+
+        if (parsed.error?.message) {
+          throw new Error(`AI 流式错误: ${parsed.error.message}`);
+        }
+
+        const delta = parsed.choices?.[0]?.delta;
+        const content = delta?.content ?? "";
+        const thinking = delta?.reasoning_content;
+
+        if (content) {
+          accumulated += content;
+        }
+        if (content || thinking) {
+          onUpdate(accumulated, thinking);
+        }
+      }
+    }
+
+    if (!accumulated) {
+      throw new Error("AI 流式响应无内容");
+    }
+    return this.stripModelFences(accumulated);
   }
 
   private resolveEndpointAndModel(): { endpoint: string; model: string } {

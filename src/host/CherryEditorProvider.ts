@@ -216,6 +216,14 @@ export class CherryEditorProvider implements vscode.CustomTextEditorProvider {
                 data.action as string,
                 data.text as string,
                 data.prompts as string | undefined,
+                (content, thinking) => {
+                  webviewPanel.webview.postMessage({
+                    command: raw.command,
+                    reqId: raw.reqId,
+                    streaming: true,
+                    data: { content, thinking },
+                  } satisfies ExtMessage);
+                },
               );
               extResponse(raw, result, webviewPanel.webview);
             } catch (error) {

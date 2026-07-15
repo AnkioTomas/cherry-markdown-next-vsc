@@ -107,7 +107,17 @@ class CherryWebviewApp {
     }
 
     if (boot.aiEnabled) {
-      editorOptions.onAiRequest = async (action, selected, prompts) => {
+      editorOptions.onAiRequest = async (action, selected, prompts, onUpdate) => {
+        if (onUpdate) {
+          return this.bridge.askStream<string>(
+            "aiRequest",
+            { action, text: selected, prompts },
+            (chunk) => {
+              const c = chunk as { content?: string; thinking?: string };
+              onUpdate(c.content ?? "", c.thinking);
+            },
+          );
+        }
         return this.bridge.ask<string>("aiRequest", {
           action,
           text: selected,
