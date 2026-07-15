@@ -199,7 +199,7 @@ export class CherryEditorProvider implements vscode.CustomTextEditorProvider {
               const result = await uploader.upload({
                 name: data.name as string,
                 mime: data.mime as string,
-                dataBase64: data.dataBase64 as string,
+                dataBytes: data.dataBytes as Uint8Array,
               });
               extResponse(raw, result, webviewPanel.webview);
             } catch (error) {

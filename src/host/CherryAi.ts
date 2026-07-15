@@ -234,7 +234,7 @@ ${CherryAi.OUTPUT_RULES}
         }
 
         let parsed: {
-          choices?: Array<{ delta?: { content?: string; reasoning_content?: string } }>;
+          choices?: Array<{ delta?: { content?: string; reasoning_content?: string; reasoning?: string } }>;
           error?: { message?: string };
         };
         try {
@@ -249,7 +249,12 @@ ${CherryAi.OUTPUT_RULES}
 
         const delta = parsed.choices?.[0]?.delta;
         const content = delta?.content ?? "";
-        const thinking = delta?.reasoning_content;
+        
+        const thinkPiece =
+          (typeof delta?.reasoning_content === "string" && delta.reasoning_content) ||
+          (typeof delta?.reasoning === "string" && delta.reasoning) ||
+          "";
+        const thinking = thinkPiece || undefined;
 
         if (content) {
           accumulated += content;

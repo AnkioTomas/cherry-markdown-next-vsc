@@ -14,7 +14,7 @@ export type { UploadResult } from "./uploader/BaseUploader";
 export interface UploadRequest {
   name: string;
   mime: string;
-  dataBase64: string;
+  dataBytes: Uint8Array;
 }
 
 /**
@@ -38,7 +38,7 @@ export class CherryUploader {
     const tmpFile = path.join(tmpDir, fileName);
 
     try {
-      await fs.writeFile(tmpFile, Buffer.from(request.dataBase64, "base64"));
+      await fs.writeFile(tmpFile, request.dataBytes);
       return await uploader.upload(tmpFile, request.name || fileName);
     } finally {
       await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
