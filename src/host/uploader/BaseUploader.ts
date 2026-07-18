@@ -2,7 +2,7 @@ import { execFile } from "child_process";
 import { promisify } from "util";
 import * as path from "path";
 import * as vscode from "vscode";
-import type { CherryConfig } from "../CherryConfig";
+import type { PennaConfig } from "../PennaConfig";
 
 const execFileAsync = promisify(execFile);
 
@@ -17,7 +17,7 @@ export interface UploadResult {
 export abstract class BaseUploader {
   constructor(
     protected readonly documentUri: vscode.Uri,
-    protected readonly config: CherryConfig,
+    protected readonly config: PennaConfig,
   ) {}
 
   abstract upload(tempPath: string, originalName: string): Promise<UploadResult>;

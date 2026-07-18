@@ -10,7 +10,7 @@ export class ScriptUploader extends BaseUploader {
   async upload(tempPath: string, originalName: string): Promise<UploadResult> {
     const script = this.config.getItem<string>("upload.script", "").trim();
     if (!script) {
-      throw new Error("未配置 cherryMarkdownNext.upload.script");
+      throw new Error("未配置 pennaMarkdown.upload.script");
     }
 
     const scriptPath = this.resolveConfiguredPath(script);

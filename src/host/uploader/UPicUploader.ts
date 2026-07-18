@@ -36,7 +36,7 @@ export class UPicUploader extends BaseUploader {
     }
 
     throw new Error(
-      "未找到 uPic，请安装到 /Applications，或配置 cherryMarkdownNext.upload.upicPath",
+      "未找到 uPic，请安装到 /Applications，或配置 pennaMarkdown.upload.upicPath",
     );
   }
 

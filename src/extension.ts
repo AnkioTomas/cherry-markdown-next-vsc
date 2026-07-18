@@ -1,12 +1,12 @@
 import * as vscode from "vscode";
-import {CherryEditorProvider} from "./host/CherryEditorProvider";
+import {PennaEditorProvider} from "./host/PennaEditorProvider";
 
 export function activate(context: vscode.ExtensionContext) {
-  const provider = new CherryEditorProvider(context);
+  const provider = new PennaEditorProvider(context);
 
   context.subscriptions.push(
     vscode.window.registerCustomEditorProvider(
-      CherryEditorProvider.viewType,
+      PennaEditorProvider.viewType,
       provider,
       {
         webviewOptions: {

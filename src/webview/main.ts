@@ -1,20 +1,20 @@
 import {
-  Cherry,
+  Penna,
   DEFAULT_TOOLBAR_ITEMS,
-  type CherryOptions,
+  type PennaOptions,
   type EditorOptions,
-} from "cherry-markdown-next";
-import "cherry-markdown-next/editor.css";
-import "cherry-markdown-next/transformer.css";
+} from "penna-markdown";
+import "penna-markdown/editor.css";
+import "penna-markdown/transformer.css";
 import "./themes.css";
 import "./styles.css";
-import { CherryBridge } from "./CherryBridge";
+import { PennaBridge } from "./PennaBridge";
 
 interface EditorChangePayload {
   markdown: string;
 }
 
-interface CherryBoot {
+interface PennaBoot {
   text: string;
   appearance: "light" | "dark";
   layout: string;
@@ -26,19 +26,19 @@ interface CherryBoot {
   aiEnabled: boolean;
 }
 
-const SETTINGS_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" class="cherry-toolbar-icon" aria-hidden="true"><path fill="currentColor" d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.15 7.15 0 0 0-1.62-.94l-.36-2.54A.48.48 0 0 0 14 2h-4a.48.48 0 0 0-.48.42l-.36 2.54c-.59.24-1.13.55-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.65 8.87a.49.49 0 0 0 .12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94L2.77 14.5a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.39.3.59.22l2.39-.96c.5.39 1.03.7 1.62.94l.36 2.54c.05.24.24.42.48.42h4c.24 0 .44-.18.48-.42l.36-2.54c.59-.24 1.13-.55 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>`;
+const SETTINGS_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" class="penna-toolbar-icon" aria-hidden="true"><path fill="currentColor" d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.15 7.15 0 0 0-1.62-.94l-.36-2.54A.48.48 0 0 0 14 2h-4a.48.48 0 0 0-.48.42l-.36 2.54c-.59.24-1.13.55-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.65 8.87a.49.49 0 0 0 .12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94L2.77 14.5a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.39.3.59.22l2.39-.96c.5.39 1.03.7 1.62.94l.36 2.54c.05.24.24.42.48.42h4c.24 0 .44-.18.48-.42l.36-2.54c.59-.24 1.13-.55 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>`;
 
-class CherryWebviewApp {
-  private readonly bridge = new CherryBridge();
+class PennaWebviewApp {
+  private readonly bridge = new PennaBridge();
   private readonly root: HTMLElement;
-  private editor: Cherry | null = null;
+  private editor: Penna | null = null;
   /** 初始化 / 外部灌文期间吞掉 change，避免打开即脏 */
   private muteChange = false;
 
   constructor() {
-    const rootEl = document.getElementById("cherry-root");
+    const rootEl = document.getElementById("penna-root");
     if (!rootEl) {
-      throw new Error("Missing #cherry-root");
+      throw new Error("Missing #penna-root");
     }
     this.root = rootEl;
 
@@ -56,11 +56,11 @@ class CherryWebviewApp {
       }
     });
     this.bridge.on("reconfigure", (data) => {
-      this.createEditor(data as CherryBoot);
+      this.createEditor(data as PennaBoot);
     });
 
     // 向 Host 要初始化数据，再创建编辑器
-    void this.bridge.ask<CherryBoot>("ready").then((boot) => {
+    void this.bridge.ask<PennaBoot>("ready").then((boot) => {
       this.createEditor(boot);
     });
   }
@@ -69,7 +69,7 @@ class CherryWebviewApp {
     this.editor?.theme.setLightDark(appearance);
   }
 
-  /** 双 rAF：等 Cherry/CodeMirror 同步+异步 init change 刷完再放行 */
+  /** 双 rAF：等 Penna/CodeMirror 同步+异步 init change 刷完再放行 */
   private releaseMute(): void {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
@@ -78,7 +78,7 @@ class CherryWebviewApp {
     });
   }
 
-  private buildEditorOptions(boot: CherryBoot): EditorOptions {
+  private buildEditorOptions(boot: PennaBoot): EditorOptions {
     const editorOptions: EditorOptions = {
       value: boot.text,
       lineNumbers: boot.lineNumbers,
@@ -119,7 +119,7 @@ class CherryWebviewApp {
     return editorOptions;
   }
 
-  private createEditor(boot: CherryBoot): void {
+  private createEditor(boot: PennaBoot): void {
     this.muteChange = true;
 
     if (this.editor) {
@@ -127,8 +127,8 @@ class CherryWebviewApp {
       this.editor = null;
     }
 
-    const options: CherryOptions = {
-      layout: boot.layout as CherryOptions["layout"],
+    const options: PennaOptions = {
+      layout: boot.layout as PennaOptions["layout"],
       appearance: boot.appearance ?? "light",
       themeId: boot.theme,
       statusbar: boot.statusbar,
@@ -142,7 +142,7 @@ class CherryWebviewApp {
             id: "vscode-settings",
             type: "button",
             label: "设置",
-            title: "打开 Cherry Markdown Next 设置",
+            title: "打开 Penna Markdown 设置",
             icon: SETTINGS_ICON,
             onClick: () => {
               this.bridge.post("openSettings");
@@ -156,7 +156,7 @@ class CherryWebviewApp {
       editor: this.buildEditorOptions(boot),
     };
 
-    this.editor = new Cherry(this.root, options);
+    this.editor = new Penna(this.root, options);
 
     this.editor.eventBus.on("editor:change", (payload: EditorChangePayload) => {
       if (this.muteChange) {
@@ -178,4 +178,4 @@ class CherryWebviewApp {
   }
 }
 
-new CherryWebviewApp();
+new PennaWebviewApp();

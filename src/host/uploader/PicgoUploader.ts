@@ -39,7 +39,7 @@ export class PicgoUploader extends BaseUploader {
     }
 
     throw new Error(
-      "未找到 PicGo，请安装桌面端或 picgo-core，或配置 cherryMarkdownNext.upload.picgoPath",
+      "未找到 PicGo，请安装桌面端或 picgo-core，或配置 pennaMarkdown.upload.picgoPath",
     );
   }
 

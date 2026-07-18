@@ -1,23 +1,23 @@
 <p align="center">
-  <img src="logo/android-chrome-192x192.png" width="128" height="128" alt="Cherry Markdown Next VSC" />
+  <img src="logo/android-chrome-192x192.png" width="128" height="128" alt="Penna Markdown VSC" />
 </p>
 
-<h1 align="center">Cherry Markdown Next VSC</h1>
+<h1 align="center">Penna Markdown VSC</h1>
 
 <p align="center">
-  基于 <a href="https://github.com/AnkioTomas/cherry-markdown-next">Cherry Markdown Next</a> 的 VS Code / Cursor 自定义 Markdown 编辑器
+  基于 <a href="https://github.com/AnkioTomas/penna-markdown">Penna Markdown</a> 的 VS Code / Cursor 自定义 Markdown 编辑器
 </p>
 
 <p align="center">
-  <a href="https://marketplace.visualstudio.com/items?itemName=ankio.cherry-markdown-next-vsc"><img src="https://img.shields.io/visual-studio-marketplace/v/ankio.cherry-markdown-next-vsc?label=VS%20Marketplace" alt="VS Marketplace" /></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=ankio.penna-markdown-vsc"><img src="https://img.shields.io/visual-studio-marketplace/v/ankio.penna-markdown-vsc?label=VS%20Marketplace" alt="VS Marketplace" /></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License" /></a>
 </p>
 
-打开 `*.md` 时默认使用 Cherry 编辑器：分栏预览、主题、图片上传、OpenAI 兼容 AI 工具栏。
+打开 `*.md` 时默认使用 Penna 编辑器：分栏预览、主题、图片上传、OpenAI 兼容 AI 工具栏。
 
 ## 功能
 
-- **自定义编辑器**：`*.md` 默认以 Cherry 打开（分栏 / 仅编辑 / 仅预览）
+- **自定义编辑器**：`*.md` 默认以 Penna 打开（分栏 / 仅编辑 / 仅预览）
 - **主题**：`default` / `github` / `claude` / `morandi` / `latex` / `vue` / `notion`
 - **跟随 VS Code 明暗色**
 - **图片 / 文件上传**
@@ -37,10 +37,10 @@
 
 ### Marketplace
 
-扩展发布后，在扩展市场搜索 **Cherry Markdown Next VSC**，或安装：
+扩展发布后，在扩展市场搜索 **Penna Markdown VSC**，或安装：
 
 ```text
-ankio.cherry-markdown-next-vsc
+ankio.penna-markdown-vsc
 ```
 
 ### 本地 VSIX
@@ -48,20 +48,20 @@ ankio.cherry-markdown-next-vsc
 ```bash
 pnpm install
 pnpm run package
-code --install-extension ./dist/cherry-markdown-next-vsc.vsix
+code --install-extension ./dist/penna-markdown-vsc.vsix
 # Cursor:
-# cursor --install-extension ./dist/cherry-markdown-next-vsc.vsix
+# cursor --install-extension ./dist/penna-markdown-vsc.vsix
 ```
 
 ## 使用
 
 1. 打开任意 `.md` 文件（默认使用本扩展）
-2. 工具栏可打开设置；也可在设置中搜索 `Cherry Markdown Next`
+2. 工具栏可打开设置；也可在设置中搜索 `Penna Markdown`
 3. 若要改回内置编辑器：编辑器标题栏右键 → **Reopen Editor With…** → 选择文本编辑器
 
 ## 配置
 
-设置前缀：`cherryMarkdownNext.*`。改完后编辑器会自动重建。
+设置前缀：`pennaMarkdown.*`。改完后编辑器会自动重建。
 
 ### 界面
 
@@ -107,10 +107,10 @@ code --install-extension ./dist/cherry-markdown-next-vsc.vsix
 
 ```json
 {
-  "cherryMarkdownNext.upload.mode": "local",
-  "cherryMarkdownNext.ai.enabled": true,
-  "cherryMarkdownNext.ai.provider": "deepseek",
-  "cherryMarkdownNext.ai.apiKeyEnv": "DEEPSEEK_API_KEY"
+  "pennaMarkdown.upload.mode": "local",
+  "pennaMarkdown.ai.enabled": true,
+  "pennaMarkdown.ai.provider": "deepseek",
+  "pennaMarkdown.ai.apiKeyEnv": "DEEPSEEK_API_KEY"
 }
 ```
 
@@ -131,7 +131,7 @@ pnpm run build
 | `pnpm run watch` | 监听构建 Host |
 | `pnpm run watch:webview` | 监听构建 Webview |
 | `pnpm run typecheck` | TypeScript 检查 |
-| `pnpm run package` | 打包到 `dist/cherry-markdown-next-vsc.vsix` |
+| `pnpm run package` | 打包到 `dist/penna-markdown-vsc.vsix` |
 
 ### 结构
 
@@ -141,17 +141,17 @@ logo/
 src/
   extension.ts              # 激活入口
   host/                     # Extension Host（Node）
-    CherryEditorProvider.ts # Custom Editor + IPC
-    CherryUploader.ts       # 上传门面
-    CherryAi.ts             # AI 请求
+    PennaEditorProvider.ts # Custom Editor + IPC
+    PennaUploader.ts       # 上传门面
+    PennaAi.ts             # AI 请求
     uploader/               # local / script / picgo / upic
   webview/                  # Webview（浏览器沙箱）
-    main.ts                 # Cherry 实例
-    CherryBridge.ts         # postMessage 协议
+    main.ts                 # Penna 实例
+    PennaBridge.ts         # postMessage 协议
 dist/
   extension.js
   webview/main.js
-  cherry-markdown-next-vsc.vsix
+  penna-markdown-vsc.vsix
 ```
 
 本地资源通过 Webview `<base href=asWebviewUri(文档目录)>` 解析相对路径（如 `assets/xxx.png`），无需事后扫 DOM。
@@ -167,12 +167,12 @@ dist/
 ./node_modules/.bin/vsce publish --no-dependencies
 ```
 
-或上传已打好的 `dist/cherry-markdown-next-vsc.vsix`。
+或上传已打好的 `dist/penna-markdown-vsc.vsix`。
 
 ## 相关链接
 
-- 本扩展仓库：[cherry-markdown-next-vsc](https://github.com/AnkioTomas/cherry-markdown-next-vsc)
-- 编辑器内核：[cherry-markdown-next](https://github.com/AnkioTomas/cherry-markdown-next)
+- 本扩展仓库：[penna-markdown-vsc](https://github.com/AnkioTomas/penna-markdown-vsc)
+- 编辑器内核：[penna-markdown](https://github.com/AnkioTomas/penna-markdown)
 - 作者博客：https://ankio.net
 
 ## License

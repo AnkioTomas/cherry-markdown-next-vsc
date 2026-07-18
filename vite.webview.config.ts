@@ -9,7 +9,7 @@ export default defineConfig({
       input: resolve(__dirname, "src/webview/main.ts"),
       output: {
         format: "iife",
-        name: "CherryMarkdownWebview",
+        name: "PennaMarkdownWebview",
         entryFileNames: "main.js",
         assetFileNames: "main.[ext]",
         inlineDynamicImports: true,
