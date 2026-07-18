@@ -8,9 +8,9 @@ importers:
 
   .:
     dependencies:
-      cherry-markdown-next:
+      penna-markdown:
         specifier: ^0.1.6
-        version: 0.1.6
+        version: 0.1.7
     devDependencies:
       '@types/node':
         specifier: ^22.20.0
@@ -508,9 +508,6 @@ packages:
   cheerio@1.2.0:
     resolution: {integrity: sha512-WDrybc/gKFpTYQutKIK6UvfcuxijIZfMfXaYm8NMsPQxSYvf+13fXUJ4rztGGbJcBQ/GF55gvrZ0Bc0bj/mqvg==}
     engines: {node: '>=20.18.1'}
-
-  cherry-markdown-next@0.1.6:
-    resolution: {integrity: sha512-b8bLrUqJTSMl33BMjjdMdYkMNc6mUXm0ZqHltguGrHgufSTp8rLprxFfuzXY2WymhHUzVDMDMKPpFhosmSCRNg==}
 
   chownr@1.1.4:
     resolution: {integrity: sha512-jJ0bqzaylmJtVnNgzTeSOs8DPavpbYgEr/b0YL8/2GO3xJEhInFmhKMUnEJQjZumK7KXGFhUy89PrsJWlakBVg==}
@@ -1095,6 +1092,9 @@ packages:
 
   pend@1.2.0:
     resolution: {integrity: sha512-F3asv42UuXchdzt+xXqfW1OGlVBe+mxa2mqI0pg5yAHZPvFmY3Y6drSf/GQ1A86WgWEN9Kzh/WrgKa6iGcHXLg==}
+
+  penna-markdown@0.1.7:
+    resolution: {integrity: sha512-iBqmDzFwcMd1LsR4XIIpTOYg+gA+j/u9d+ZYnx09xP+KZs9m2qw3lqlbGKPwYqWwCcLTibJ67Cm0ZVySlZe0Dw==}
 
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
@@ -2084,18 +2084,6 @@ snapshots:
       undici: 7.28.0
       whatwg-mimetype: 4.0.0
 
-  cherry-markdown-next@0.1.6:
-    dependencies:
-      '@codemirror/commands': 6.10.4
-      '@codemirror/lang-markdown': 6.5.0
-      '@codemirror/language': 6.12.4
-      '@codemirror/search': 6.7.1
-      '@codemirror/state': 6.7.1
-      '@codemirror/view': 6.43.6
-      entities: 6.0.1
-      highlight.js: 11.11.1
-      yaml: 2.9.0
-
   chownr@1.1.4:
     optional: true
 
@@ -2647,6 +2635,18 @@ snapshots:
   path-type@6.0.0: {}
 
   pend@1.2.0: {}
+
+  penna-markdown@0.1.7:
+    dependencies:
+      '@codemirror/commands': 6.10.4
+      '@codemirror/lang-markdown': 6.5.0
+      '@codemirror/language': 6.12.4
+      '@codemirror/search': 6.7.1
+      '@codemirror/state': 6.7.1
+      '@codemirror/view': 6.43.6
+      entities: 6.0.1
+      highlight.js: 11.11.1
+      yaml: 2.9.0
 
   picocolors@1.1.1: {}
 
