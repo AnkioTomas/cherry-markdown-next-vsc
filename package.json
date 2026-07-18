@@ -1,7 +1,7 @@
 {
   "name": "penna-markdown-vsc",
   "displayName": "Penna Markdown VSC",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "VS Code / Cursor extension for Penna Markdown",
   "publisher": "ankio",
   "license": "MIT",
