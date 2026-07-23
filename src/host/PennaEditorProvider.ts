@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { PennaAi } from "./PennaAi";
+import { isAbortError, PennaAi } from "./PennaAi";
 import { PennaConfig, type UploadMode } from "./PennaConfig";
 import { PennaUploader } from "./PennaUploader";
 import {
@@ -76,6 +76,10 @@ export class PennaEditorProvider implements vscode.CustomTextEditorProvider {
     let suppressDocumentSync = false;
     let config = new PennaConfig(document.uri);
     const extensionUri = this.context.extensionUri;
+    /** AI 流式请求：webview Esc → aiAbort → 取消对应 fetch */
+    const aiAbortControllers = new Map<string, AbortController>();
+    /** 用户主动取消的 reqId（超时 abort 不在此集合，需回包报错） */
+    const aiUserAborted = new Set<string>();
 
     const isUploadEnabled = (): boolean => {
       const mode = config.getItem<UploadMode>("upload.mode", "off");
@@ -210,31 +214,60 @@ export class PennaEditorProvider implements vscode.CustomTextEditorProvider {
             }
             break;
 
-          case "aiRequest":
+          case "aiAbort": {
+            const reqId = data.reqId as string | undefined;
+            if (reqId) {
+              aiUserAborted.add(reqId);
+              aiAbortControllers.get(reqId)?.abort();
+              aiAbortControllers.delete(reqId);
+            }
+            break;
+          }
+
+          case "aiRequest": {
+            const reqId = raw.reqId;
+            const controller = new AbortController();
+            if (reqId) {
+              aiAbortControllers.set(reqId, controller);
+            }
             try {
               const result = await new PennaAi(config).request(
                 data.action as string,
                 data.text as string,
                 data.prompts as string | undefined,
-                (content, thinking) => {
+                (contentDelta, thinkingDelta) => {
                   webviewPanel.webview.postMessage({
                     command: raw.command,
                     reqId: raw.reqId,
                     streaming: true,
-                    data: { content, thinking },
+                    data: { contentDelta, thinkingDelta },
                   } satisfies ExtMessage);
                 },
+                controller.signal,
               );
               extResponse(raw, result, webviewPanel.webview);
             } catch (error) {
-              const errorMessage =
-                error instanceof Error ? error.message : String(error);
+              if (reqId && aiUserAborted.has(reqId)) {
+                // Esc 取消：webview 已自行 reject，不必弹窗
+                break;
+              }
+              const errorMessage = isAbortError(error)
+                ? "AI 请求超时或已取消"
+                : error instanceof Error
+                  ? error.message
+                  : String(error);
               void vscode.window.showErrorMessage(
                 `AI 请求失败: ${errorMessage}`,
               );
               extError(raw, errorMessage, webviewPanel.webview);
+            } finally {
+              if (reqId) {
+                aiAbortControllers.delete(reqId);
+                aiUserAborted.delete(reqId);
+              }
             }
             break;
+          }
         }
       },
       null,
@@ -242,7 +275,14 @@ export class PennaEditorProvider implements vscode.CustomTextEditorProvider {
     );
 
     webviewPanel.onDidDispose(
-      () => disposables.forEach((d) => d.dispose()),
+      () => {
+        for (const controller of aiAbortControllers.values()) {
+          controller.abort();
+        }
+        aiAbortControllers.clear();
+        aiUserAborted.clear();
+        disposables.forEach((d) => d.dispose());
+      },
       null,
       disposables,
     );

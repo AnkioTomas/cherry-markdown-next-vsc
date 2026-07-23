@@ -41,8 +41,7 @@ export const AI_PROVIDERS: Record<AiProvider, AiProviderPreset> = {
   },
 };
 
-export class PennaAi {
-  private static readonly OUTPUT_RULES = `
+export const AI_OUTPUT_RULES = `
 输出规则（必须遵守）：
 1. 只输出处理后的 Markdown 正文，不要开场白、不要总结、不要「如下所示」之类说明。
 2. 不要用 \`\`\`markdown 包裹整个结果；原文里已有的代码块照常保留。
@@ -51,8 +50,8 @@ export class PennaAi {
 5. 若原文为空或无需改动，仍返回合理结果（摘要类可给出简短说明；其余尽量保持可替换文本）。
 `.trim();
 
-  private static readonly ACTION_PROMPTS: Record<string, string> = {
-    polish: `
+export const AI_ACTION_PROMPTS: Record<string, string> = {
+  polish: `
 你是资深中文技术写作者与 Markdown 编辑。任务：润色用户给出的 Markdown 片段。
 
 目标：
@@ -61,10 +60,10 @@ export class PennaAi {
 - 对英文专有名词、API、命令、路径保持原样。
 - 不要扩写成长文，不要添加原文没有的观点或章节。
 
-${PennaAi.OUTPUT_RULES}
+${AI_OUTPUT_RULES}
 `.trim(),
 
-    proofread: `
+  proofread: `
 你是严谨的中文校对编辑。任务：校对用户给出的 Markdown 片段。
 
 只做纠错，不做风格重写：
@@ -74,10 +73,10 @@ ${PennaAi.OUTPUT_RULES}
 - 专有名词大小写、常见技术名拼写（在有把握时修正）。
 - 不要为了「更好看」改写句式；原意与结构尽量不动。
 
-${PennaAi.OUTPUT_RULES}
+${AI_OUTPUT_RULES}
 `.trim(),
 
-    translate: `
+  translate: `
 你是专业中英双语译者，熟悉技术文档与 Markdown。任务：翻译用户给出的 Markdown 片段。
 
 方向判定：
@@ -90,10 +89,10 @@ ${PennaAi.OUTPUT_RULES}
 - 保持 Markdown 标记与结构位置对应（标题、列表、表格列等）。
 - 链接文字可译，URL 本身不译；图片 alt 可译。
 
-${PennaAi.OUTPUT_RULES}
+${AI_OUTPUT_RULES}
 `.trim(),
 
-    summarize: `
+  summarize: `
 你是信息提炼助手。任务：为用户给出的 Markdown 片段生成摘要。
 
 要求：
@@ -103,35 +102,106 @@ ${PennaAi.OUTPUT_RULES}
 - 不要引入原文没有的信息；不确定处不要臆造。
 - 摘要本身使用合法 Markdown（可用列表/加粗），但不要复制原文全部内容。
 
-${PennaAi.OUTPUT_RULES}
+${AI_OUTPUT_RULES}
 `.trim(),
 
-    custom: `
+  custom: `
 你是可控的 Markdown 文本改写引擎。用户会给出「指令」与「文本」。
 严格按指令处理文本；指令未要求的内容不要擅自发挥。
 
 若指令与「保留 Markdown 结构」冲突，优先满足指令，但仍避免破坏代码块与 URL。
 若指令含糊，做最小必要改动并保持可直接替换。
 
-${PennaAi.OUTPUT_RULES}
+${AI_OUTPUT_RULES}
 `.trim(),
-  };
+};
 
-  private static readonly ACTION_TEMPERATURE: Record<string, number> = {
-    polish: 0.4,
-    proofread: 0.1,
-    translate: 0.2,
-    summarize: 0.3,
-    custom: 0.4,
-  };
+export const AI_ACTION_TEMPERATURE: Record<string, number> = {
+  polish: 0.4,
+  proofread: 0.1,
+  translate: 0.2,
+  summarize: 0.3,
+  custom: 0.4,
+};
 
+/** 适配 penna-markdown `OnAiRequest` 的流式增量回调 */
+export type AiOnUpdate = (
+  contentDelta?: string,
+  thinkingDelta?: string,
+) => void;
+
+interface ChatCompletionDelta {
+  content?: string | null;
+  reasoning_content?: string | null;
+  reasoning?: string | null;
+}
+
+interface ChatCompletionChunk {
+  choices?: Array<{ delta?: ChatCompletionDelta }>;
+  error?: { message?: string };
+}
+
+export function isAbortError(error: unknown): boolean {
+  return (
+    (error instanceof DOMException && error.name === "AbortError") ||
+    (error instanceof Error && error.name === "AbortError")
+  );
+}
+
+/**
+ * 合并用户取消与超时：任一触发即 abort。
+ * Node / 现代运行时优先用 AbortSignal.any；否则手动桥接。
+ */
+function combineSignals(
+  userSignal: AbortSignal | undefined,
+  timeoutMs: number,
+): { signal: AbortSignal; cleanup: () => void } {
+  const timeoutSignal = AbortSignal.timeout(timeoutMs);
+  if (!userSignal) {
+    return { signal: timeoutSignal, cleanup: () => undefined };
+  }
+  if (typeof AbortSignal.any === "function") {
+    return {
+      signal: AbortSignal.any([userSignal, timeoutSignal]),
+      cleanup: () => undefined,
+    };
+  }
+
+  const controller = new AbortController();
+  const forward = () => {
+    if (!controller.signal.aborted) {
+      controller.abort();
+    }
+  };
+  if (userSignal.aborted || timeoutSignal.aborted) {
+    forward();
+    return { signal: controller.signal, cleanup: () => undefined };
+  }
+  userSignal.addEventListener("abort", forward, { once: true });
+  timeoutSignal.addEventListener("abort", forward, { once: true });
+  return {
+    signal: controller.signal,
+    cleanup: () => {
+      userSignal.removeEventListener("abort", forward);
+      timeoutSignal.removeEventListener("abort", forward);
+    },
+  };
+}
+
+export class PennaAi {
   constructor(private readonly config: PennaConfig) {}
 
+  /**
+   * 适配编辑器 `OnAiRequest`：
+   * `(action, text, prompts?, onUpdate?, signal?) => Promise<string>`
+   * 有 `onUpdate` 时走 SSE 流式，推送增量 contentDelta / thinkingDelta。
+   */
   public async request(
     action: string,
     text: string,
     prompts?: string,
-    onUpdate?: (content: string, thinking?: string) => void,
+    onUpdate?: AiOnUpdate,
+    signal?: AbortSignal,
   ): Promise<string> {
     if (!this.config.getItem<boolean>("ai.enabled", false)) {
       throw new Error("AI 未启用");
@@ -146,6 +216,7 @@ ${PennaAi.OUTPUT_RULES}
       1000,
       this.config.getItem<number>("ai.timeoutMs", 120_000),
     );
+    const { signal: fetchSignal, cleanup } = combineSignals(signal, timeoutMs);
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
@@ -155,120 +226,164 @@ ${PennaAi.OUTPUT_RULES}
       headers.Authorization = `Bearer ${apiKey}`;
     }
 
-    const useStream = Boolean(onUpdate);
+    try {
+      let response: Response;
+      try {
+        response = await fetch(endpoint, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: "system", content: system },
+              { role: "user", content: userContent },
+            ],
+            temperature,
+            stream: Boolean(onUpdate),
+          }),
+          signal: fetchSignal,
+        });
+      } catch (error) {
+        if (isAbortError(error)) {
+          throw error;
+        }
+        const raw = error instanceof Error ? error.message : String(error);
+        throw new Error(`网络连接失败: ${raw}`);
+      }
 
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: userContent },
-        ],
-        temperature,
-        stream: useStream,
-      }),
-      signal: AbortSignal.timeout(timeoutMs),
-    });
+      if (!response.ok) {
+        const detail = await response.text().catch(() => "");
+        throw new Error(
+          `AI 请求失败 HTTP ${response.status}${detail ? `: ${detail.slice(0, 200)}` : ""}`,
+        );
+      }
 
-    if (!response.ok) {
-      const detail = await response.text().catch(() => "");
-      throw new Error(
-        `AI 请求失败 HTTP ${response.status}${detail ? `: ${detail.slice(0, 200)}` : ""}`,
-      );
+      if (onUpdate) {
+        return this.consumeStream(response, onUpdate);
+      }
+
+      let rawBody = "";
+      try {
+        rawBody = await response.text();
+      } catch (error) {
+        if (isAbortError(error)) {
+          throw error;
+        }
+        const raw = error instanceof Error ? error.message : String(error);
+        throw new Error(`网络连接失败: ${raw}`);
+      }
+
+      let data: {
+        choices?: Array<{ message?: { content?: string } }>;
+        error?: { message?: string };
+      };
+      try {
+        data = JSON.parse(rawBody) as typeof data;
+      } catch {
+        throw new Error(`AI 响应非 JSON: ${rawBody.slice(0, 200)}`);
+      }
+
+      if (data.error?.message) {
+        throw new Error(`AI 响应错误: ${data.error.message}`);
+      }
+
+      const content = data.choices?.[0]?.message?.content?.trim();
+      if (!content) {
+        throw new Error("AI 响应缺少内容");
+      }
+      return this.stripModelFences(content);
+    } finally {
+      cleanup();
     }
-
-    if (useStream) {
-      return this.readSSEStream(response, onUpdate!);
-    }
-
-    const data = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-      error?: { message?: string };
-    };
-
-    if (data.error?.message) {
-      throw new Error(`AI 响应错误: ${data.error.message}`);
-    }
-
-    const content = data.choices?.[0]?.message?.content?.trim();
-    if (!content) {
-      throw new Error("AI 响应缺少内容");
-    }
-    return this.stripModelFences(content);
   }
 
   /**
-   * 逐行解析 SSE 流，累积 delta content 并通过 onUpdate 回调推送中间结果。
+   * 解析 SSE：向 onUpdate 推送增量 delta（不是累积全文）。
    */
-  private async readSSEStream(
+  private async consumeStream(
     response: Response,
-    onUpdate: (content: string, thinking?: string) => void,
+    onUpdate: AiOnUpdate,
   ): Promise<string> {
-    const body = response.body;
-    if (!body) {
+    if (!response.body) {
       throw new Error("SSE 响应无 body");
     }
 
+    const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
-    let accumulated = "";
+    let content = "";
 
-    for await (const chunk of body as AsyncIterable<Uint8Array>) {
-      buffer += decoder.decode(chunk, { stream: true });
-      const lines = buffer.split("\n");
-      // 最后一行可能不完整，保留
+    while (true) {
+      let done: boolean;
+      let value: Uint8Array | undefined;
+      try {
+        ({ done, value } = await reader.read());
+      } catch (error) {
+        if (isAbortError(error)) {
+          throw error;
+        }
+        const raw = error instanceof Error ? error.message : String(error);
+        throw new Error(`网络连接失败: ${raw}`);
+      }
+      if (done) {
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split(/\r?\n/);
       buffer = lines.pop() ?? "";
 
       for (const line of lines) {
         const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith(":")) {
+        if (!trimmed.startsWith("data:")) {
           continue;
         }
-        if (trimmed === "data: [DONE]") {
-          break;
-        }
-        if (!trimmed.startsWith("data: ")) {
+        const data = trimmed.slice(5).trim();
+        if (!data || data === "[DONE]") {
           continue;
         }
 
-        let parsed: {
-          choices?: Array<{ delta?: { content?: string; reasoning_content?: string; reasoning?: string } }>;
-          error?: { message?: string };
-        };
+        let chunk: ChatCompletionChunk;
         try {
-          parsed = JSON.parse(trimmed.slice(6));
+          chunk = JSON.parse(data) as ChatCompletionChunk;
         } catch {
           continue;
         }
 
-        if (parsed.error?.message) {
-          throw new Error(`AI 流式错误: ${parsed.error.message}`);
+        if (chunk.error?.message) {
+          throw new Error(`AI 流式错误: ${chunk.error.message}`);
         }
 
-        const delta = parsed.choices?.[0]?.delta;
-        const content = delta?.content ?? "";
-        
-        const thinkPiece =
-          (typeof delta?.reasoning_content === "string" && delta.reasoning_content) ||
-          (typeof delta?.reasoning === "string" && delta.reasoning) ||
-          "";
-        const thinking = thinkPiece || undefined;
-
-        if (content) {
-          accumulated += content;
+        const delta = chunk.choices?.[0]?.delta;
+        if (!delta) {
+          continue;
         }
-        if (content || thinking) {
-          onUpdate(accumulated, thinking);
+
+        const contentDelta =
+          typeof delta.content === "string" && delta.content
+            ? delta.content
+            : undefined;
+        if (contentDelta) {
+          content += contentDelta;
+        }
+
+        const thinkingDelta =
+          (typeof delta.reasoning_content === "string" &&
+            delta.reasoning_content) ||
+          (typeof delta.reasoning === "string" && delta.reasoning) ||
+          undefined;
+
+        if (contentDelta || thinkingDelta) {
+          onUpdate(contentDelta, thinkingDelta || undefined);
         }
       }
     }
 
-    if (!accumulated) {
+    const final = this.stripModelFences(content);
+    if (!final) {
       throw new Error("AI 流式响应无内容");
     }
-    return this.stripModelFences(accumulated);
+    return final;
   }
 
   private resolveEndpointAndModel(): { endpoint: string; model: string } {
@@ -313,8 +428,8 @@ ${PennaAi.OUTPUT_RULES}
       return override;
     }
     return (
-      PennaAi.ACTION_PROMPTS[action] ||
-      `你是 Markdown 写作助手。按要求处理文本。\n\n${PennaAi.OUTPUT_RULES}`
+      AI_ACTION_PROMPTS[action] ||
+      `你是 Markdown 写作助手。按要求处理文本。\n\n${AI_OUTPUT_RULES}`
     );
   }
 
@@ -323,7 +438,7 @@ ${PennaAi.OUTPUT_RULES}
     if (configured >= 0) {
       return configured;
     }
-    return PennaAi.ACTION_TEMPERATURE[action] ?? 0.3;
+    return AI_ACTION_TEMPERATURE[action] ?? 0.3;
   }
 
   private buildUserMessage(

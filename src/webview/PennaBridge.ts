@@ -3,6 +3,8 @@ type Pending = {
   resolve: (value: unknown) => void;
   reject: (error: Error) => void;
   onStream?: (data: unknown) => void;
+  /** 取消时清理 AbortSignal 监听 */
+  cleanup?: () => void;
 };
 
 /**
@@ -91,23 +93,62 @@ export class PennaBridge {
 
   /**
    * 带流式中间推送的异步请求：Host 可在最终 resolve 前多次推送 streaming 数据。
+   * 传入 `signal` 时，abort 会通知 Host 取消对应请求，并 reject AbortError。
    *
    * @param command 指令名
    * @param data 请求载荷
    * @param onStream 每次收到 streaming 推送时调用
+   * @param signal 可选取消信号（如 penna-markdown AI Esc）
    * @returns 最终结果
    */
   askStream<T = unknown>(
     command: string,
     data: unknown,
     onStream: (chunk: unknown) => void,
+    signal?: AbortSignal,
   ): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       const reqId = `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
+      const onAbort = () => {
+        this.vscode.postMessage({
+          command: "aiAbort",
+          data: { reqId },
+        } satisfies ExtMessage);
+        const abortError =
+          typeof DOMException !== "undefined"
+            ? new DOMException("Aborted", "AbortError")
+            : Object.assign(new Error("Aborted"), { name: "AbortError" });
+        const entry = this.pending.get(reqId);
+        if (entry) {
+          entry.cleanup?.();
+          this.pending.delete(reqId);
+        }
+        reject(abortError);
+      };
+
+      if (signal?.aborted) {
+        onAbort();
+        return;
+      }
+
+      let cleanup: (() => void) | undefined;
+      if (signal) {
+        signal.addEventListener("abort", onAbort, { once: true });
+        cleanup = () => signal.removeEventListener("abort", onAbort);
+      }
+
       this.pending.set(reqId, {
-        resolve: (value) => resolve(value as T),
-        reject,
+        resolve: (value) => {
+          cleanup?.();
+          resolve(value as T);
+        },
+        reject: (error) => {
+          cleanup?.();
+          reject(error);
+        },
         onStream,
+        cleanup,
       });
       this.vscode.postMessage({ command, reqId, data } satisfies ExtMessage);
     });
@@ -127,6 +168,7 @@ export class PennaBridge {
         return;
       }
       // 最终结算
+      entry.cleanup?.();
       this.pending.delete(message.reqId);
       if (message.error) {
         entry.reject(new Error(message.error));

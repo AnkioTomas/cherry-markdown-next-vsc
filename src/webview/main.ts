@@ -97,15 +97,28 @@ class PennaWebviewApp {
     }
 
     if (boot.aiEnabled) {
-      editorOptions.onAiRequest = async (action, selected, prompts, onUpdate) => {
+      // penna-markdown ≥0.2.2：onUpdate 传增量 delta；signal 用于 Esc 取消
+      editorOptions.onAiRequest = async (
+        action,
+        selected,
+        prompts,
+        onUpdate,
+        signal,
+      ) => {
         if (onUpdate) {
           return this.bridge.askStream<string>(
             "aiRequest",
             { action, text: selected, prompts },
             (chunk) => {
-              const c = chunk as { content?: string; thinking?: string };
-              onUpdate(c.content ?? "", c.thinking);
+              const c = chunk as {
+                contentDelta?: string;
+                thinkingDelta?: string;
+              };
+              if (c.contentDelta || c.thinkingDelta) {
+                onUpdate(c.contentDelta, c.thinkingDelta);
+              }
             },
+            signal,
           );
         }
         return this.bridge.ask<string>("aiRequest", {
